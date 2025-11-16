@@ -115,7 +115,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     # Keep the weather entity
-    entities_to_keep.append(f"weather.{entity_prefix}_weather")
+    entities_to_keep.append(f"weather.{entity_prefix}")
 
     # if observations are enabled, keep the configured observation sensors
     if entry.options.get(CONF_OBSERVATIONS_CREATE) is True:

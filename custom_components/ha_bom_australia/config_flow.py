@@ -83,8 +83,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_weather_name(self, user_input=None):
-        """Handle the locations step."""
-        # Get location and station information
+        """Handle the entity prefix configuration step."""
+        # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
 
         # Generate default entity prefix from location name
@@ -108,10 +108,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_WEATHER_NAME,
-                    default=location_name,
-                ): str,
-                vol.Required(
                     CONF_ENTITY_PREFIX,
                     default=default_prefix,
                 ): str,
@@ -121,8 +117,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                # Save the user input into self.data so it's retained
-                self.data.update(user_input)
+                # Save the entity prefix and use location name from API
+                self.data[CONF_ENTITY_PREFIX] = user_input[CONF_ENTITY_PREFIX]
+                self.data[CONF_WEATHER_NAME] = location_name  # Use API location name
 
                 return await self.async_step_sensors_create()
 
@@ -141,7 +138,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_sensors_create(self, user_input=None):
-        """Handle the observations step."""
+        """Handle sensor type selection step."""
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_OBSERVATIONS_CREATE, default=True): bool,
@@ -182,20 +179,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_observations_monitored(self, user_input=None):
         """Handle the observations monitored step."""
-        monitored = {}
+        # Build schema with individual checkboxes for each sensor
+        schema_dict = {}
         for sensor in OBSERVATION_SENSOR_TYPES:
-            monitored[sensor.key] = sensor.name
+            schema_dict[vol.Optional(sensor.key, default=True)] = bool
 
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_OBSERVATIONS_MONITORED): cv.multi_select(monitored),
-            }
-        )
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Convert checkbox selections to list of selected sensors
+                selected_sensors = [key for key, value in user_input.items() if value is True]
+                self.data[CONF_OBSERVATIONS_MONITORED] = selected_sensors
 
                 # Move onto the next step of the config flow
                 if self.data[CONF_FORECASTS_CREATE]:
@@ -221,32 +217,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_forecasts_monitored(self, user_input=None):
         """Handle the forecasts monitored step."""
-        monitored = {}
+        # Build schema with individual checkboxes for each forecast sensor
+        schema_dict = {}
         for sensor in FORECAST_SENSOR_TYPES:
-            monitored[sensor.key] = sensor.name
+            schema_dict[vol.Optional(sensor.key, default=True)] = bool
 
-        # Create day selection options (0-6 for 7 days)
-        days_options = {
-            0: "Day 0 (Today)",
-            1: "Day 1 (Tomorrow)",
-            2: "Day 2",
-            3: "Day 3",
-            4: "Day 4",
-            5: "Day 5",
-            6: "Day 6",
-        }
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_FORECASTS_MONITORED): cv.multi_select(monitored),
-                vol.Required(CONF_FORECASTS_DAYS, default=DEFAULT_FORECAST_DAYS): cv.multi_select(days_options),
-            }
+        # Add number of forecast days as a numeric input (0-7)
+        schema_dict[vol.Required(CONF_FORECASTS_DAYS, default=5)] = vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=7)
         )
+
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Extract forecast days
+                forecast_days = user_input.pop(CONF_FORECASTS_DAYS)
+
+                # Convert checkbox selections to list of selected sensors
+                selected_sensors = [key for key, value in user_input.items() if value is True]
+
+                # Save to data
+                self.data[CONF_FORECASTS_MONITORED] = selected_sensors
+                # Convert integer to list of days (0 to forecast_days)
+                self.data[CONF_FORECASTS_DAYS] = list(range(0, forecast_days + 1))
 
                 if self.data[CONF_WARNINGS_CREATE]:
                     return await self.async_step_warnings_monitored()
@@ -267,24 +262,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_warnings_monitored(self, user_input=None):
         """Handle the warnings monitored step."""
-        # Create warning type selection options
-        warnings_options = {}
+        # Build schema with individual checkboxes for each warning type
+        schema_dict = {}
         for warning_type, warning_info in WARNING_TYPES.items():
-            warnings_options[warning_type] = warning_info["name"]
+            schema_dict[vol.Optional(warning_type, default=True)] = bool
 
-        # Default to all warning types selected
-        default_warnings = list(WARNING_TYPES.keys())
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_WARNINGS_MONITORED, default=default_warnings): cv.multi_select(warnings_options),
-            }
-        )
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Convert checkbox selections to list of selected warning types
+                selected_warnings = [key for key, value in user_input.items() if value is True]
+                self.data[CONF_WARNINGS_MONITORED] = selected_warnings
+
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -367,23 +358,13 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_weather_name(self, user_input=None):
-        """Handle the locations step."""
-        # Get default values
+        """Handle the entity prefix configuration step."""
+        # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
         default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_WEATHER_NAME,
-                    default=self.config_entry.options.get(
-                        CONF_WEATHER_NAME,
-                        self.config_entry.data.get(
-                            CONF_WEATHER_NAME,
-                            location_name,
-                        ),
-                    ),
-                ): str,
                 vol.Required(
                     CONF_ENTITY_PREFIX,
                     default=self.config_entry.options.get(
@@ -400,8 +381,9 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None:
             try:
-                # Save the user input into self.data so it's retained
-                self.data.update(user_input)
+                # Save the entity prefix and use location name from API
+                self.data[CONF_ENTITY_PREFIX] = user_input[CONF_ENTITY_PREFIX]
+                self.data[CONF_WEATHER_NAME] = location_name  # Use API location name
 
                 return await self.async_step_sensors_create()
 
@@ -476,26 +458,26 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_observations_monitored(self, user_input=None):
         """Handle the observations monitored step."""
-        monitored = {}
-        for sensor in OBSERVATION_SENSOR_TYPES:
-            monitored[sensor.key] = sensor.name
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_OBSERVATIONS_MONITORED,
-                    default=self.config_entry.options.get(
-                        CONF_OBSERVATIONS_MONITORED,
-                        self.config_entry.data.get(CONF_OBSERVATIONS_MONITORED, None),
-                    ),
-                ): cv.multi_select(monitored),
-            }
+        # Get current selections
+        current_selections = self.config_entry.options.get(
+            CONF_OBSERVATIONS_MONITORED,
+            self.config_entry.data.get(CONF_OBSERVATIONS_MONITORED, [])
         )
+
+        # Build schema with individual checkboxes for each sensor
+        schema_dict = {}
+        for sensor in OBSERVATION_SENSOR_TYPES:
+            default_value = sensor.key in current_selections if current_selections else True
+            schema_dict[vol.Optional(sensor.key, default=default_value)] = bool
+
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Convert checkbox selections to list of selected sensors
+                selected_sensors = [key for key, value in user_input.items() if value is True]
+                self.data[CONF_OBSERVATIONS_MONITORED] = selected_sensors
 
                 # Move onto the next step of the config flow
                 if self.data[CONF_FORECASTS_CREATE]:
@@ -521,44 +503,44 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_forecasts_monitored(self, user_input=None):
         """Handle the forecasts monitored step."""
-        monitored = {}
-        for sensor in FORECAST_SENSOR_TYPES:
-            monitored[sensor.key] = sensor.name
-
-        # Create day selection options (0-6 for 7 days)
-        days_options = {
-            0: "Day 0 (Today)",
-            1: "Day 1 (Tomorrow)",
-            2: "Day 2",
-            3: "Day 3",
-            4: "Day 4",
-            5: "Day 5",
-            6: "Day 6",
-        }
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_FORECASTS_MONITORED,
-                    default=self.config_entry.options.get(
-                        CONF_FORECASTS_MONITORED,
-                        self.config_entry.data.get(CONF_FORECASTS_MONITORED, None),
-                    ),
-                ): cv.multi_select(monitored),
-                vol.Required(
-                    CONF_FORECASTS_DAYS,
-                    default=self.config_entry.options.get(
-                        CONF_FORECASTS_DAYS,
-                        self.config_entry.data.get(CONF_FORECASTS_DAYS, DEFAULT_FORECAST_DAYS),
-                    ),
-                ): cv.multi_select(days_options),
-            }
+        # Get current selections
+        current_selections = self.config_entry.options.get(
+            CONF_FORECASTS_MONITORED,
+            self.config_entry.data.get(CONF_FORECASTS_MONITORED, [])
         )
+        current_days = self.config_entry.options.get(
+            CONF_FORECASTS_DAYS,
+            self.config_entry.data.get(CONF_FORECASTS_DAYS, [0, 1, 2, 3, 4, 5])
+        )
+        # Convert list to max day number
+        default_days = max(current_days) if isinstance(current_days, list) and current_days else 5
+
+        # Build schema with individual checkboxes for each forecast sensor
+        schema_dict = {}
+        for sensor in FORECAST_SENSOR_TYPES:
+            default_value = sensor.key in current_selections if current_selections else True
+            schema_dict[vol.Optional(sensor.key, default=default_value)] = bool
+
+        # Add number of forecast days as a numeric input (0-7)
+        schema_dict[vol.Required(CONF_FORECASTS_DAYS, default=default_days)] = vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=7)
+        )
+
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Extract forecast days
+                forecast_days = user_input.pop(CONF_FORECASTS_DAYS)
+
+                # Convert checkbox selections to list of selected sensors
+                selected_sensors = [key for key, value in user_input.items() if value is True]
+
+                # Save to data
+                self.data[CONF_FORECASTS_MONITORED] = selected_sensors
+                # Convert integer to list of days (0 to forecast_days)
+                self.data[CONF_FORECASTS_DAYS] = list(range(0, forecast_days + 1))
 
                 if self.data[CONF_WARNINGS_CREATE]:
                     return await self.async_step_warnings_monitored()
@@ -579,30 +561,27 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_warnings_monitored(self, user_input=None):
         """Handle the warnings monitored step."""
-        # Create warning type selection options
-        warnings_options = {}
-        for warning_type, warning_info in WARNING_TYPES.items():
-            warnings_options[warning_type] = warning_info["name"]
-
-        # Default to all warning types selected
-        default_warnings = list(WARNING_TYPES.keys())
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_WARNINGS_MONITORED,
-                    default=self.config_entry.options.get(
-                        CONF_WARNINGS_MONITORED,
-                        self.config_entry.data.get(CONF_WARNINGS_MONITORED, default_warnings),
-                    ),
-                ): cv.multi_select(warnings_options),
-            }
+        # Get current selections
+        current_selections = self.config_entry.options.get(
+            CONF_WARNINGS_MONITORED,
+            self.config_entry.data.get(CONF_WARNINGS_MONITORED, list(WARNING_TYPES.keys()))
         )
+
+        # Build schema with individual checkboxes for each warning type
+        schema_dict = {}
+        for warning_type, warning_info in WARNING_TYPES.items():
+            default_value = warning_type in current_selections if current_selections else True
+            schema_dict[vol.Optional(warning_type, default=default_value)] = bool
+
+        data_schema = vol.Schema(schema_dict)
 
         errors = {}
         if user_input is not None:
             try:
-                self.data.update(user_input)
+                # Convert checkbox selections to list of selected warning types
+                selected_warnings = [key for key, value in user_input.items() if value is True]
+                self.data[CONF_WARNINGS_MONITORED] = selected_warnings
+
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
