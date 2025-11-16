@@ -8,6 +8,7 @@ from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
+    CONF_ENTITY_PREFIX,
     CONF_FORECASTS_BASENAME,
     CONF_FORECASTS_CREATE,
     CONF_FORECASTS_DAYS,
@@ -88,9 +89,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Get location and station information
         location_name = self.collector.locations_data["data"]["name"]
 
+        # Generate default entity prefix from location name
+        default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+
         # Build description with station information
         description_placeholders = {
             "location_name": location_name,
+            "default_prefix": default_prefix,
         }
 
         # Try to get station name from observations if available
@@ -107,6 +112,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_WEATHER_NAME,
                     default=location_name,
+                ): str,
+                vol.Required(
+                    CONF_ENTITY_PREFIX,
+                    default=default_prefix,
                 ): str,
             }
         )

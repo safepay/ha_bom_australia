@@ -23,6 +23,7 @@ COLLECTOR: Final = "collector"
 UPDATE_LISTENER: Final = "update_listener"
 
 CONF_WEATHER_NAME: Final = "weather_name"
+CONF_ENTITY_PREFIX: Final = "entity_prefix"
 CONF_FORECASTS_BASENAME: Final = "forecasts_basename"
 CONF_FORECASTS_CREATE: Final = "forecasts_create"
 CONF_FORECASTS_DAYS: Final = "forecasts_days"

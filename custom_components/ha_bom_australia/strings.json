@@ -11,9 +11,10 @@
       },
       "weather_name": {
         "title": "Weather Station Found",
-        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nYou can customize the name for your weather entity below.",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nCustomize your entity names and prefix below.\nExample with prefix '{default_prefix}': weather.{default_prefix}_weather",
         "data": {
-          "weather_name": "Weather Entity Name"
+          "weather_name": "Weather Entity Name",
+          "entity_prefix": "Entity Prefix (will be used for all entity IDs)"
         }
       },
       "sensors_create": {
@@ -63,9 +64,10 @@
       },
       "weather_name": {
         "title": "Weather Station Found",
-        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nYou can customize the name for your weather entity below.",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nCustomize your entity names and prefix below.\nExample with prefix '{default_prefix}': weather.{default_prefix}_weather",
         "data": {
-          "weather_name": "Weather Entity Name"
+          "weather_name": "Weather Entity Name",
+          "entity_prefix": "Entity Prefix (will be used for all entity IDs)"
         }
       },
       "sensors_create": {

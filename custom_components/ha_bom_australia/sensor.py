@@ -25,6 +25,7 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
+    CONF_ENTITY_PREFIX,
     CONF_FORECASTS_BASENAME,
     CONF_FORECASTS_CREATE,
     CONF_FORECASTS_DAYS,
@@ -74,11 +75,21 @@ async def async_setup_entry(
             config_entry.data.get(CONF_OBSERVATIONS_MONITORED, None),
         )
 
+        # Get entity prefix from config, fallback to default based on location name
+        entity_prefix = config_entry.options.get(
+            CONF_ENTITY_PREFIX,
+            config_entry.data.get(
+                CONF_ENTITY_PREFIX,
+                f"bom_{observation_basename.lower().replace(' ', '_').replace('-', '_')}"
+            )
+        )
+
         for observation in observations:
             new_entities.append(
                 ObservationSensor(
                     hass_data,
                     observation_basename,
+                    entity_prefix,
                     observation,
                     [
                         description
@@ -99,6 +110,15 @@ async def async_setup_entry(
             CONF_FORECASTS_MONITORED, config_entry.data.get(CONF_FORECASTS_MONITORED)
         )
 
+        # Get entity prefix from config, fallback to default based on location name
+        entity_prefix = config_entry.options.get(
+            CONF_ENTITY_PREFIX,
+            config_entry.data.get(
+                CONF_ENTITY_PREFIX,
+                f"bom_{forecast_basename.lower().replace(' ', '_').replace('-', '_')}"
+            )
+        )
+
         for day in range(0, forecast_days + 1):
             for forecast in forecasts_monitored:
                 if forecast in [
@@ -112,6 +132,7 @@ async def async_setup_entry(
                             NowLaterSensor(
                                 hass_data,
                                 forecast_basename,
+                                entity_prefix,
                                 forecast,
                                 [
                                     description
@@ -125,6 +146,7 @@ async def async_setup_entry(
                         ForecastSensor(
                             hass_data,
                             forecast_basename,
+                            entity_prefix,
                             day,
                             forecast,
                             [
@@ -145,19 +167,20 @@ async def async_setup_entry(
 class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
     """Base representation of a BOM Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,) -> None:
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,) -> None:
         """Initialize the sensor."""
         super().__init__(hass_data[COORDINATOR])
         self.collector: Collector = hass_data[COLLECTOR]
         self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name: str = location_name
+        self.entity_prefix: str = entity_prefix
         self.sensor_name: str = sensor_name
         self.current_state: Any = None
         self.entity_description = description
 
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"bom_{self.location_name}")},
+            identifiers={(DOMAIN, self.entity_prefix)},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
             name=f"BOM {self.location_name}",
@@ -186,14 +209,14 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
 class ObservationSensor(SensorBase):
     """Representation of a BOM Observation Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description)
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -267,15 +290,15 @@ class ObservationSensor(SensorBase):
 class ForecastSensor(SensorBase):
     """Representation of a BOM Forecast Sensor."""
 
-    def __init__(self, hass_data, location_name, day, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, day, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
         self.day = day
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description)
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.day}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.day}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -358,14 +381,14 @@ class ForecastSensor(SensorBase):
 class NowLaterSensor(SensorBase):
     """Representation of a BOM Forecast Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description)
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
     def native_value(self):

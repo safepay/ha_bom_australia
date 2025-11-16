@@ -18,6 +18,7 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
+    CONF_ENTITY_PREFIX,
     CONF_WARNINGS_CREATE,
     CONF_WARNINGS_BASENAME,
     COORDINATOR,
@@ -64,11 +65,20 @@ async def async_setup_entry(
         config_entry.data.get(CONF_WARNINGS_BASENAME, "Home"),
     )
 
+    # Get entity prefix from config, fallback to default based on location name
+    entity_prefix = config_entry.options.get(
+        CONF_ENTITY_PREFIX,
+        config_entry.data.get(
+            CONF_ENTITY_PREFIX,
+            f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+        )
+    )
+
     # Create binary sensors for each warning type
     new_entities = []
     for warning_type, warning_info in WARNING_TYPES.items():
         new_entities.append(
-            BomWarningSensor(hass_data, location_name, warning_type, warning_info)
+            BomWarningSensor(hass_data, location_name, entity_prefix, warning_type, warning_info)
         )
 
     if new_entities:
@@ -79,18 +89,19 @@ class BomWarningSensor(BinarySensorEntity):
     """Representation of a BOM Warning Binary Sensor."""
 
     def __init__(
-        self, hass_data, location_name: str, warning_type: str, warning_info: dict
+        self, hass_data, location_name: str, entity_prefix: str, warning_type: str, warning_info: dict
     ) -> None:
         """Initialize the binary sensor."""
         self.collector: Collector = hass_data[COLLECTOR]
         self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name = location_name
+        self.entity_prefix = entity_prefix
         self.warning_type = warning_type
         self.warning_info = warning_info
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"bom_{self.location_name}_warnings")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_warnings")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
             name=f"BOM {self.location_name} Warnings",
@@ -119,7 +130,7 @@ class BomWarningSensor(BinarySensorEntity):
     @property
     def unique_id(self) -> str:
         """Return unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_warning_{self.warning_type}"
+        return f"{self.entity_prefix}_warning_{self.warning_type}"
 
     @property
     def icon(self) -> str:
