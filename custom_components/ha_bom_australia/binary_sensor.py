@@ -90,10 +90,10 @@ class BomWarningSensor(BinarySensorEntity):
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{self.location_name}_warnings")},
+            identifiers={(DOMAIN, f"bom_{self.location_name}_warnings")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"{self.location_name} Warnings",
+            name=f"BOM {self.location_name} Warnings",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -114,12 +114,12 @@ class BomWarningSensor(BinarySensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"{self.location_name} {self.warning_info['name']}"
+        return f"BOM {self.location_name} {self.warning_info['name']}"
 
     @property
     def unique_id(self) -> str:
         """Return unique ID string."""
-        return f"{self.location_name}_warning_{self.warning_type}"
+        return f"bom_{self.location_name.lower().replace(' ', '_')}_warning_{self.warning_type}"
 
     @property
     def icon(self) -> str:

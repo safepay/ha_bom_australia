@@ -1,5 +1,5 @@
 {
-  "name": "Bureau of Meteorology",
+  "name": "BOM Australia",
   "render_readme": "true",
   "iot_class": "Cloud Polling",
   "homeassistant": "2023.9.0"

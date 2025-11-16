@@ -157,10 +157,10 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
 
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{self.location_name}")},
+            identifiers={(DOMAIN, f"bom_{self.location_name}")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=self.location_name,
+            name=f"BOM {self.location_name}",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -193,7 +193,7 @@ class ObservationSensor(SensorBase):
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"{self.location_name}_{self.sensor_name}"
+        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -261,7 +261,7 @@ class ObservationSensor(SensorBase):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
 class ForecastSensor(SensorBase):
@@ -275,7 +275,7 @@ class ForecastSensor(SensorBase):
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"{self.location_name}_{self.day}_{self.sensor_name}"
+        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.day}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -352,7 +352,7 @@ class ForecastSensor(SensorBase):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
+        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
 
 
 class NowLaterSensor(SensorBase):
@@ -365,7 +365,7 @@ class NowLaterSensor(SensorBase):
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"{self.location_name}_{self.sensor_name}"
+        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -390,7 +390,7 @@ class NowLaterSensor(SensorBase):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 def calculate_dew_point(temperature, humidity):
     """Calculate dew point using temperature and humidity observations"""

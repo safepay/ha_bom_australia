@@ -11,7 +11,9 @@ This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http
 
 ## Installation (There are two methods, with HACS or manual)
 
-Install via HACS (default store) or install manually by copying the files in a new 'custom_components/bureau_of_meteorology' directory.
+Install via HACS (default store) or install manually by copying the files in a new 'custom_components/ha_bom_australia' directory.
+
+**Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`bom_`) to avoid conflicts with the original Bureau of Meteorology integration.
 
 ## Features
 
@@ -56,7 +58,7 @@ After you have installed the custom component (see above):
 
 1. Goto the `Configuration` -> `Integrations` page.
 2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
-3. Search for `Bureau of Meteorology`. (If you don't see it, try refreshing your browser page to reload the cache.)
+3. Search for `BOM Australia`. (If you don't see it, try refreshing your browser page to reload the cache.)
 4. Enter your latitude and longitude (the integration will automatically find the nearest BOM weather station)
 5. The integration will display the nearest weather station and observation station being used
 6. Configure which entities you want to create (weather, observations, forecasts, warnings)
@@ -70,7 +72,7 @@ Please set your logging for the custom_component to debug:
 logger:
   default: warn
   logs:
-    custom_components.bureau_of_meteorology: debug
+    custom_components.ha_bom_australia: debug
 ```
 
 ### Notes
@@ -81,6 +83,8 @@ logger:
 ## Release Notes
 
 ### 2.0.0 - Major Refactoring: Enhanced Weather Entity and Binary Sensor Warnings
+- **BREAKING CHANGE**: Directory renamed from `bureau_of_meteorology` to `ha_bom_australia` to avoid conflicts with original integration
+- **BREAKING CHANGE**: All entity names now prefixed with "BOM" and unique IDs prefixed with "bom_"
 - **BREAKING CHANGE**: Consolidated weather entities - Now provides a single comprehensive weather entity with both daily and hourly forecasts instead of separate entities
 - **NEW**: Binary sensor platform for warnings - Individual binary sensors for each warning type (flood, storm, fire, etc.) with on/off states and severity attributes
 - **ENHANCED**: Weather entity now includes extensive attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
@@ -93,6 +97,9 @@ logger:
 - **IMPROVED**: Warning handling with individual binary sensors for each warning type, making it easier to automate and monitor specific warnings
 
 **Migration Notes:**
+- **IMPORTANT**: This integration uses a different directory (`custom_components/ha_bom_australia`) and can be installed alongside the original integration
+- All entities are prefixed with "BOM" (e.g., "BOM Sydney" instead of "Sydney")
+- Entity IDs are prefixed with "bom_" (e.g., `weather.bom_sydney_weather`)
 - Existing weather entities will need to be reconfigured
 - Old warning sensors will be replaced by new binary sensors
 - The weather entity unique ID has changed to include `_weather` suffix

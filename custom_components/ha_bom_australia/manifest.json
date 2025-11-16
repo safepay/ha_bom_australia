@@ -1,6 +1,6 @@
 {
-  "domain": "bureau_of_meteorology",
-  "name": "Bureau of Meteorology",
+  "domain": "ha_bom_australia",
+  "name": "BOM Australia",
   "integration_type": "service",
   "config_flow": true,
   "documentation": "https://github.com/bremor/bureau_of_meteorology",

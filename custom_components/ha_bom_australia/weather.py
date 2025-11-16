@@ -64,10 +64,10 @@ class WeatherBase(WeatherEntity):
         self.location_name: str = location_name
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, self.location_name)},
+            identifiers={(DOMAIN, f"bom_{self.location_name}")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=self.location_name,
+            name=f"BOM {self.location_name}",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -188,12 +188,12 @@ class BomWeather(WeatherBase):
     @property
     def name(self):
         """Return the name."""
-        return self.location_name
+        return f"BOM {self.location_name}"
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"{self.location_name}_weather"
+        return f"bom_{self.location_name.lower().replace(' ', '_')}_weather"
 
     @property
     def extra_state_attributes(self):
