@@ -32,15 +32,12 @@ from .const import (
     CONF_OBSERVATIONS_BASENAME,
     CONF_OBSERVATIONS_CREATE,
     CONF_OBSERVATIONS_MONITORED,
-    CONF_WARNINGS_BASENAME,
-    CONF_WARNINGS_CREATE,
     COORDINATOR,
     DOMAIN,
     SHORT_ATTRIBUTION,
     MODEL_NAME,
     OBSERVATION_SENSOR_TYPES,
     FORECAST_SENSOR_TYPES,
-    WARNING_SENSOR_TYPES,
     ATTR_API_NON_NOW_LABEL,
     ATTR_API_NON_TEMP_NOW,
     ATTR_API_NOW_LATER_LABEL,
@@ -65,9 +62,6 @@ async def async_setup_entry(
     )
     create_forecasts = config_entry.options.get(
         CONF_FORECASTS_CREATE, config_entry.data.get(CONF_FORECASTS_CREATE)
-    )
-    create_warnings = config_entry.options.get(
-        CONF_WARNINGS_CREATE, config_entry.data.get(CONF_WARNINGS_CREATE)
     )
 
     if create_observations is True:
@@ -141,31 +135,8 @@ async def async_setup_entry(
                         )
                     )
 
-    if create_warnings is True:
-        warnings_basename = config_entry.options.get(
-            CONF_WARNINGS_BASENAME,
-            config_entry.data.get(
-                CONF_WARNINGS_BASENAME,
-                config_entry.options.get(
-                    CONF_FORECASTS_BASENAME,
-                    config_entry.data.get(CONF_FORECASTS_BASENAME, None),
-                ),
-            ),
-        )
-
-        if warnings_basename is not None:
-            new_entities.append(
-                WarningsSensor(
-                    hass_data, 
-                    warnings_basename, 
-                    "warnings",
-                    [
-                        description
-                        for description in WARNING_SENSOR_TYPES
-                        if description.key == "warnings"
-                    ][0],
-                )
-            )
+    # Note: Warnings are now handled by binary_sensor platform
+    # See binary_sensor.py for warning sensor implementation
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -382,43 +353,6 @@ class ForecastSensor(SensorBase):
     def name(self):
         """Return the name of the sensor."""
         return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
-
-
-class WarningsSensor(SensorBase):
-    """Representation of a BOM Warnings Sensor."""
-
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,):
-        """Initialize the sensor."""
-        super().__init__(hass_data, location_name, sensor_name, description)
-
-    @property
-    def unique_id(self):
-        """Return Unique ID string."""
-        return f"{self.location_name}_{self.sensor_name}"
-
-    @property
-    def native_value(self):
-        """Return the state of the device."""
-        return self.coordinator.data.get(self.entity_description.key)
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes of the sensor."""
-        attr = self.collector.warnings_data["metadata"]
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
-        attr["warnings"] = self.collector.warnings_data["data"]
-        return attr
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        # If there is no data for this day, return state as 'None'.
-        return len(self.collector.warnings_data["data"])
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
 class NowLaterSensor(SensorBase):

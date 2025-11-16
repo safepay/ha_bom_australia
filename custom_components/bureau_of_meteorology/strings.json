@@ -10,10 +10,10 @@
         }
       },
       "weather_name": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Weather Station Found",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nYou can customize the name for your weather entity below.",
         "data": {
-          "weather_name": "[%key:common::config_flow::data::weather_name%]"
+          "weather_name": "Weather Entity Name"
         }
       },
       "sensors_create": {
@@ -62,10 +62,10 @@
         }
       },
       "weather_name": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Weather Station Found",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nYou can customize the name for your weather entity below.",
         "data": {
-          "weather_name": "[%key:common::config_flow::data::weather_name%]"
+          "weather_name": "Weather Entity Name"
         }
       },
       "sensors_create": {

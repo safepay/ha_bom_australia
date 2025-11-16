@@ -33,7 +33,7 @@ from .PyBoM.collector import Collector
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "weather"]
+PLATFORMS = ["binary_sensor", "sensor", "weather"]
 
 DEFAULT_SCAN_INTERVAL = datetime.timedelta(minutes=5)
 DEBOUNCE_TIME = 60  # in seconds

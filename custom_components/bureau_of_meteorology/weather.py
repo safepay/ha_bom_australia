@@ -47,8 +47,8 @@ async def async_setup_entry(
         CONF_WEATHER_NAME, config_entry.data.get(CONF_WEATHER_NAME, "Home")
     )
 
-    new_entities.append(WeatherDaily(hass_data, location_name))
-    new_entities.append(WeatherHourly(hass_data, location_name))
+    # Create a single comprehensive weather entity that supports both daily and hourly forecasts
+    new_entities.append(BomWeather(hass_data, location_name))
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -173,20 +173,17 @@ class WeatherBase(WeatherEntity):
         await self.coordinator.async_update()
 
 
-class WeatherDaily(WeatherBase):
-    """Representation of a BOM weather entity."""
+class BomWeather(WeatherBase):
+    """Comprehensive representation of a BOM weather entity with daily and hourly forecasts."""
 
     def __init__(self, hass_data, location_name):
         """Initialize the sensor."""
         super().__init__(hass_data, location_name)
 
-    async def async_forecast_hourly(self) -> list[Forecast]:
-        # Don't implement this feature for this entity
-        raise NotImplementedError
-
     @property
     def supported_features(self):
-      return WeatherEntityFeature.FORECAST_DAILY
+        """Return supported features - both daily and hourly forecasts."""
+        return WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
 
     @property
     def name(self):
@@ -196,30 +193,47 @@ class WeatherDaily(WeatherBase):
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return self.location_name
-
-
-class WeatherHourly(WeatherBase):
-    """Representation of a BOM hourly weather entity."""
-
-    def __init__(self, hass_data, location_name):
-        """Initialize the sensor."""
-        super().__init__(hass_data, location_name)
-
-    async def async_forecast_daily(self) -> list[Forecast]:
-        # Don't implement this feature for this entity
-        raise NotImplementedError
+        return f"{self.location_name}_weather"
 
     @property
-    def supported_features(self):
-      return WeatherEntityFeature.FORECAST_HOURLY
+    def extra_state_attributes(self):
+        """Return comprehensive weather attributes."""
+        try:
+            attrs = {}
 
-    @property
-    def name(self):
-        """Return the name."""
-        return self.location_name + " Hourly"
+            # Add current observation data
+            if self.collector.observations_data and "data" in self.collector.observations_data:
+                obs_data = self.collector.observations_data["data"]
+                attrs["feels_like"] = obs_data.get("temp_feels_like")
+                attrs["dew_point"] = obs_data.get("dew_point")
+                attrs["station_name"] = obs_data.get("station", {}).get("name")
+                attrs["station_id"] = obs_data.get("station", {}).get("bom_id")
 
-    @property
-    def unique_id(self):
-        """Return Unique ID string."""
-        return self.location_name + "_hourly"
+            # Add today's forecast data
+            if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+                if len(self.collector.daily_forecasts_data["data"]) > 0:
+                    today = self.collector.daily_forecasts_data["data"][0]
+                    attrs["uv_category"] = today.get("uv_category")
+                    attrs["uv_max_index"] = today.get("uv_max_index")
+                    attrs["uv_start_time"] = today.get("uv_start_time")
+                    attrs["uv_end_time"] = today.get("uv_end_time")
+                    attrs["fire_danger"] = today.get("fire_danger")
+                    attrs["sunrise"] = today.get("astronomical_sunrise_time")
+                    attrs["sunset"] = today.get("astronomical_sunset_time")
+                    attrs["extended_text"] = today.get("extended_text")
+                    attrs["short_text"] = today.get("short_text")
+                    attrs["now_label"] = today.get("now_now_label")
+                    attrs["now_temp"] = today.get("now_temp_now")
+                    attrs["later_label"] = today.get("now_later_label")
+                    attrs["later_temp"] = today.get("now_temp_later")
+
+            # Add warning count
+            if self.collector.warnings_data and "data" in self.collector.warnings_data:
+                attrs["warning_count"] = len(self.collector.warnings_data["data"])
+
+            attrs["attribution"] = ATTRIBUTION
+
+            return attrs
+        except (KeyError, TypeError) as err:
+            _LOGGER.debug(f"Error building weather attributes: {err}")
+            return {"attribution": ATTRIBUTION}

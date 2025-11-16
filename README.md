@@ -13,6 +13,43 @@ This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http
 
 Install via HACS (default store) or install manually by copying the files in a new 'custom_components/bureau_of_meteorology' directory.
 
+## Features
+
+This integration provides three types of entities to organize your weather data:
+
+### 1. Weather Entity
+A comprehensive weather entity that combines both daily and hourly forecasts in a single view, including:
+- Current conditions (temperature, humidity, wind)
+- 7-day daily forecasts
+- Hourly forecasts
+- Additional attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, station information
+
+### 2. Binary Sensors (Warnings)
+Individual binary sensors for different warning types:
+- Flood warnings
+- Severe thunderstorm warnings
+- Severe weather warnings
+- Fire weather warnings
+- Tropical cyclone warnings
+- Storm warnings
+- Wind warnings
+- Sheep graziers warnings
+- Heat warnings
+- Tsunami warnings
+- Marine warnings
+
+Each binary sensor includes:
+- On/off state based on active warnings
+- Severity information in attributes
+- Issue and expiry times
+- Detailed warning information
+
+### 3. Sensors (Observations & Forecasts)
+Regular sensors for:
+- Current observations (temperature, humidity, wind speed, rainfall, etc.)
+- Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
+- Astronomical data (sunrise/sunset times)
+
 ## Configuration
 
 After you have installed the custom component (see above):
@@ -20,7 +57,10 @@ After you have installed the custom component (see above):
 1. Goto the `Configuration` -> `Integrations` page.
 2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
 3. Search for `Bureau of Meteorology`. (If you don't see it, try refreshing your browser page to reload the cache.)
-4. Click `Submit` so add the integration.
+4. Enter your latitude and longitude (the integration will automatically find the nearest BOM weather station)
+5. The integration will display the nearest weather station and observation station being used
+6. Configure which entities you want to create (weather, observations, forecasts, warnings)
+7. Click `Submit` to add the integration.
 
 ## Troubleshooting
 
@@ -39,6 +79,23 @@ logger:
 2. All feature requests, issues and questions are welcome.
 
 ## Release Notes
+
+### 2.0.0 - Major Refactoring: Enhanced Weather Entity and Binary Sensor Warnings
+- **BREAKING CHANGE**: Consolidated weather entities - Now provides a single comprehensive weather entity with both daily and hourly forecasts instead of separate entities
+- **NEW**: Binary sensor platform for warnings - Individual binary sensors for each warning type (flood, storm, fire, etc.) with on/off states and severity attributes
+- **ENHANCED**: Weather entity now includes extensive attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
+- **IMPROVED**: Better station information display during configuration - Shows both the BOM location name and the observation station being used
+- **ORGANIZED**: Clear separation of three entity types:
+  1. Weather entity (comprehensive forecasts)
+  2. Binary sensors (warnings with individual sensors per type)
+  3. Sensors (observations and forecast data points)
+- **REMOVED**: Old warning sensor (replaced by binary sensors)
+- **IMPROVED**: Warning handling with individual binary sensors for each warning type, making it easier to automate and monitor specific warnings
+
+**Migration Notes:**
+- Existing weather entities will need to be reconfigured
+- Old warning sensors will be replaced by new binary sensors
+- The weather entity unique ID has changed to include `_weather` suffix
 
 ### 1.3.6 - Fix incorrect weather icons/states and adjusted timezone to match weather station location: 
 - Fix 'Clear Night' shown during day and 'Sunny' shown at night. Thanks @Ay1tsMe
