@@ -32,7 +32,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BOM."""
 
     VERSION = 2
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     @staticmethod
     @callback
@@ -369,6 +368,10 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_weather_name(self, user_input=None):
         """Handle the locations step."""
+        # Get default values
+        location_name = self.collector.locations_data["data"]["name"]
+        default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+
         data_schema = vol.Schema(
             {
                 vol.Required(
@@ -377,7 +380,17 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                         CONF_WEATHER_NAME,
                         self.config_entry.data.get(
                             CONF_WEATHER_NAME,
-                            self.collector.locations_data["data"]["name"],
+                            location_name,
+                        ),
+                    ),
+                ): str,
+                vol.Required(
+                    CONF_ENTITY_PREFIX,
+                    default=self.config_entry.options.get(
+                        CONF_ENTITY_PREFIX,
+                        self.config_entry.data.get(
+                            CONF_ENTITY_PREFIX,
+                            default_prefix,
                         ),
                     ),
                 ): str,
