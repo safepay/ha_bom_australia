@@ -34,7 +34,7 @@ CONF_WARNINGS_CREATE: Final = "warnings_create"
 CONF_WARNINGS_BASENAME: Final = "warnings_basename"
 
 COORDINATOR: Final = "coordinator"
-DOMAIN: Final = "bureau_of_meteorology"
+DOMAIN: Final = "ha_bom_australia"
 
 MAP_CONDITION: Final = {
     "clear": "clear-night",

@@ -1,0 +1,15 @@
+{
+  "domain": "ha_bom_australia",
+  "name": "BOM Australia",
+  "integration_type": "service",
+  "config_flow": true,
+  "documentation": "https://github.com/safepay/ha_bom_australia",
+  "issue_tracker": "https://github.com/safepay/ha_bom_australia/issues",
+  "requirements": ["iso8601"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "version": "1.0.0",
+  "codeowners": ["@safepay"]
+}

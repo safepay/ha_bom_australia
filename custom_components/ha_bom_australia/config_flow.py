@@ -85,11 +85,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_weather_name(self, user_input=None):
         """Handle the locations step."""
+        # Get location and station information
+        location_name = self.collector.locations_data["data"]["name"]
+
+        # Build description with station information
+        description_placeholders = {
+            "location_name": location_name,
+        }
+
+        # Try to get station name from observations if available
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            station_data = self.collector.observations_data["data"].get("station", {})
+            if station_data:
+                station_name = station_data.get("name", "Unknown")
+                station_id = station_data.get("bom_id", "Unknown")
+                description_placeholders["station_name"] = station_name
+                description_placeholders["station_id"] = station_id
+
         data_schema = vol.Schema(
             {
                 vol.Required(
                     CONF_WEATHER_NAME,
-                    default=self.collector.locations_data["data"]["name"],
+                    default=location_name,
                 ): str,
             }
         )
@@ -110,7 +127,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="weather_name", data_schema=data_schema, errors=errors
+            step_id="weather_name",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     async def async_step_sensors_create(self, user_input=None):
