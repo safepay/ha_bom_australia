@@ -80,136 +80,43 @@ logger:
 1. This integration will not refresh data faster than once every 5 minutes.
 2. All feature requests, issues and questions are welcome.
 
+## About This Integration
+
+This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to follow the WillyWeather integration pattern and avoid conflicts with existing integrations.
+
+**Key differences from the original:**
+- Uses directory name `ha_bom_australia` instead of `bureau_of_meteorology`
+- All entities prefixed with "BOM" and unique IDs prefixed with "bom_"
+- Consolidated weather entity with both daily and hourly forecasts
+- Binary sensor platform for individual warning types
+- Can be installed alongside the original Bureau of Meteorology integration
+
 ## Release Notes
 
-### 2.0.0 - Major Refactoring: Enhanced Weather Entity and Binary Sensor Warnings
-- **BREAKING CHANGE**: Directory renamed from `bureau_of_meteorology` to `ha_bom_australia` to avoid conflicts with original integration
-- **BREAKING CHANGE**: All entity names now prefixed with "BOM" and unique IDs prefixed with "bom_"
-- **BREAKING CHANGE**: Consolidated weather entities - Now provides a single comprehensive weather entity with both daily and hourly forecasts instead of separate entities
-- **NEW**: Binary sensor platform for warnings - Individual binary sensors for each warning type (flood, storm, fire, etc.) with on/off states and severity attributes
-- **ENHANCED**: Weather entity now includes extensive attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
-- **IMPROVED**: Better station information display during configuration - Shows both the BOM location name and the observation station being used
-- **ORGANIZED**: Clear separation of three entity types:
+### 1.0.0 - Initial Release (Refactored Fork)
+
+**New Features:**
+- **Comprehensive Weather Entity**: Single weather entity combining both daily and hourly forecasts with extensive attributes including UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
+- **Binary Sensor Warnings Platform**: Individual binary sensors for each warning type (flood, severe thunderstorm, severe weather, fire, tropical cyclone, storm, wind, sheep graziers, heat, tsunami, marine) with on/off states, severity information, and detailed warning data
+- **Improved Station Discovery**: Automatic detection of nearest BOM weather station based on coordinates with enhanced station information display during configuration
+- **Organized Entity Types**: Clear separation into three categories:
   1. Weather entity (comprehensive forecasts)
-  2. Binary sensors (warnings with individual sensors per type)
+  2. Binary sensors (warnings)
   3. Sensors (observations and forecast data points)
-- **REMOVED**: Old warning sensor (replaced by binary sensors)
-- **IMPROVED**: Warning handling with individual binary sensors for each warning type, making it easier to automate and monitor specific warnings
 
-**Migration Notes:**
-- **IMPORTANT**: This integration uses a different directory (`custom_components/ha_bom_australia`) and can be installed alongside the original integration
-- All entities are prefixed with "BOM" (e.g., "BOM Sydney" instead of "Sydney")
-- Entity IDs are prefixed with "bom_" (e.g., `weather.bom_sydney_weather`)
-- Existing weather entities will need to be reconfigured
-- Old warning sensors will be replaced by new binary sensors
-- The weather entity unique ID has changed to include `_weather` suffix
+**Technical Details:**
+- Domain: `ha_bom_australia`
+- Entity prefix: `bom_`
+- Compatible with Home Assistant 2023.9.0+
+- Data refresh: Every 5 minutes (minimum)
+- Supports both daily (7-day) and hourly forecasts
 
-### 1.3.6 - Fix incorrect weather icons/states and adjusted timezone to match weather station location: 
-- Fix 'Clear Night' shown during day and 'Sunny' shown at night. Thanks @Ay1tsMe
-- Show hourly and daily forecasts in the weather-stations local time instead of HA server's time. Thanks @Ay1tsMe
-
-### 1.3.5 - Fix for null error warnings and small get_forecasts() response improvement
-- Fix null forecast errors. Thanks @systemtester
-- Fix uv_index response in action.get_forecasts() to confirm with HA documented responses Thanks @systemtester
-
-### 1.3.4 - Fix for 2025.12 HA deprecation warnings
-- Fix config_entry deprecation warning. Thanks @systemtester
-
-### 1.3.3 - Fix for more HA breaking changes
-- Fix setup block warning. Thanks @Poshy163
-- Fix 'timezone' not defined error in UV forecasts. Thanks @dbiczo
-
-### 1.3.2 - Fix for more HA breaking changes
-- Fix for Detected blocking call to open inside the event loop by @dbiczo
-
-### 1.3.0 - HA breaking stuff again
-- Fix wind direction units. Thanks @djferg.
-- Fix breaking changes introduced in 2023.9.
-- Add dew sensor. Thanks @djferg.
-- Updates for 2024.1 deprecations.
-
-### 1.2.0 - Refactor for breaking changes made by HA
-- HA have completely changed how weather forecasts are handled causing a breaking change (thanks to @evilmarty for the work to update the integration).
-
-### 1.1.21 - Fix for BOM breaking change
-- A minor bug fix for the previous fix.
-
-### 1.1.20 - Fix for BOM breaking change
-- A minor bug fix to make the integration work again after a BOM update.
-
-### 1.1.19 - Updates to keep up with HA
-- Minor internal changes to sensors.
-
-### 1.1.18 - Fix observed min/max sensors
-- Fix a bug in the configuration of the observed min/max sensors (note that it may be necessary to remove and re-add the instance of the integration to correct).
-
-### 1.1.17 - Adjust rain range format
-- On some cards (particularly on mobile devices) with larger numbers the rain range fields where getting to wide to fit. The range fields format has been updated from `25 to 30mm` to `25-30mm` to overcome this problem.
-
-### 1.1.16 - Add more data to hourly forecast
-- Add humidity to hourly forecast.
-- Add UV to hourly forecast.
-- Add wind gust speed to hourly forecast.
-
-### 1.1.15 - Add more sensor data
-- Add color attributes to the fire danger sensor.
-- Add observation sensors for observed min/max along with timestamp.
-
-### 1.1.14 - Allow reconfiguration
-- Allow integration reconfiguration (thanks to @Djelibeybi for the contribution).
-- Register entities within a service (thanks to @Djelibeybi for the contribution).
-- Adjust UV text to match an update made on the BoM site.
-- Fix a problem with the call to the location api not returning a valid location.
-
-### 1.1.13 - Add bad location error message
-- Add a meaningful error message when trying to configure using lat/lon that aren't in Australia.
-
-### 1.1.12 - Embed timezone in timestamps
-- This embeds the timezone of the location in timestamps, whcih is needed to display timess correctly if you create sensors in a different timezone to where the HA server is located.
-
-### 1.1.11 - Fixes for 2022.7.0
-- This is to address an architecture change in 2022.7.0 and will not install on earlier versions of HA.
-
-### 1.1.10 - Add UV Forecast
-- Adds new uv_forecast sensors to the daily forecast.
-- Make the uv_category sensors more human readable.
-
-### 1.1.9 - Add attribute to extended forecasts
-- Add 'state' attribute to extended forecast entities to hold the non-truncated forecast.
-
-### 1.1.8 - Weather Warnings
-- Add optional warning sensor.
-- Rework card configuration.
-
-### 1.1.7 - Fix upgrading
-- 1.1.6 had a problem that when upgrading the weather.xxx entities didn't migrate smoothly.
-
-## 1.1.6 - Allow setting the name of weather entities.
-- Add the ability to name the weather entities when forecast is not checked during config.
-
-### 1.1.5 - Fix unit of measurement for wind speed
-- The wind speed in the weather object had the wrong value as the unit of measurment was not being set.
-
-### 1.1.4 - Fix weather object not being created
-- When the forecast configuration box was unticked the weather object was failing to be created.
-
-### 1.1.2 - Add Sunrise/Sunset sensors
-- Added sunrise and sunset sensors in the forecast that provide the sunrise/sunset times for the selected forecast period.
-
-### 1.1.1 - Add Now/Later sensors
-- Added now and later sensors in the forecast that provide the next 2 min/max elements.
-- Fix sensors disappearing when data is not available from the BoM.
-
-### 1.1.0 - Improve stability
-- Updated the way the integration fetches data from BoM to improve stability.
-
-### 1.0.0 - Hourly Forecast Weather Entity and Bug Fixes
-- Released a weather entity with hourly forecast.
-- Hopefully fixed that bug that occured when BoM had missing data.
-- Refactored code to be a bit cleaner.
+**Credits:**
+- Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
+- Refactoring inspired by the [WillyWeather integration](https://github.com/safepay/willyweather-forecast-home-assistant) pattern
 
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/bremor/bureau_of_meteorology.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/bremor/bureau_of_meteorology.svg?style=for-the-badge
-[releases]: https://github.com/bremor/bureau_of_meteorology/releases
+[license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg?style=for-the-badge
+[releases]: https://github.com/safepay/ha_bom_australia/releases
