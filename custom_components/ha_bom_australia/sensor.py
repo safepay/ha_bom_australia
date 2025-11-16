@@ -25,13 +25,13 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
-    CONF_FORECASTS_BASENAME,
+    CONF_ENTITY_PREFIX,
     CONF_FORECASTS_CREATE,
     CONF_FORECASTS_DAYS,
     CONF_FORECASTS_MONITORED,
-    CONF_OBSERVATIONS_BASENAME,
     CONF_OBSERVATIONS_CREATE,
     CONF_OBSERVATIONS_MONITORED,
+    CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
     SHORT_ATTRIBUTION,
@@ -64,11 +64,19 @@ async def async_setup_entry(
         CONF_FORECASTS_CREATE, config_entry.data.get(CONF_FORECASTS_CREATE)
     )
 
-    if create_observations is True:
-        observation_basename = config_entry.options.get(
-            CONF_OBSERVATIONS_BASENAME,
-            config_entry.data.get(CONF_OBSERVATIONS_BASENAME),
+    # Get location name and entity prefix (shared across all sensors)
+    location_name = config_entry.options.get(
+        CONF_WEATHER_NAME, config_entry.data.get(CONF_WEATHER_NAME, "Home")
+    )
+    entity_prefix = config_entry.options.get(
+        CONF_ENTITY_PREFIX,
+        config_entry.data.get(
+            CONF_ENTITY_PREFIX,
+            f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
         )
+    )
+
+    if create_observations is True:
         observations = config_entry.options.get(
             CONF_OBSERVATIONS_MONITORED,
             config_entry.data.get(CONF_OBSERVATIONS_MONITORED, None),
@@ -78,7 +86,8 @@ async def async_setup_entry(
             new_entities.append(
                 ObservationSensor(
                     hass_data,
-                    observation_basename,
+                    location_name,
+                    entity_prefix,
                     observation,
                     [
                         description
@@ -89,17 +98,21 @@ async def async_setup_entry(
             )
 
     if create_forecasts is True:
-        forecast_basename = config_entry.options.get(
-            CONF_FORECASTS_BASENAME, config_entry.data.get(CONF_FORECASTS_BASENAME)
-        )
         forecast_days = config_entry.options.get(
-            CONF_FORECASTS_DAYS, config_entry.data.get(CONF_FORECASTS_DAYS)
+            CONF_FORECASTS_DAYS, config_entry.data.get(CONF_FORECASTS_DAYS, [])
         )
         forecasts_monitored = config_entry.options.get(
             CONF_FORECASTS_MONITORED, config_entry.data.get(CONF_FORECASTS_MONITORED)
         )
 
-        for day in range(0, forecast_days + 1):
+        # Ensure forecast_days is a list
+        if isinstance(forecast_days, int):
+            # Legacy support: convert old integer format to list
+            forecast_days = list(range(0, forecast_days + 1))
+        elif not isinstance(forecast_days, list):
+            forecast_days = []
+
+        for day in forecast_days:
             for forecast in forecasts_monitored:
                 if forecast in [
                     ATTR_API_NON_NOW_LABEL,
@@ -111,7 +124,8 @@ async def async_setup_entry(
                         new_entities.append(
                             NowLaterSensor(
                                 hass_data,
-                                forecast_basename,
+                                location_name,
+                                entity_prefix,
                                 forecast,
                                 [
                                     description
@@ -124,7 +138,8 @@ async def async_setup_entry(
                     new_entities.append(
                         ForecastSensor(
                             hass_data,
-                            forecast_basename,
+                            location_name,
+                            entity_prefix,
                             day,
                             forecast,
                             [
@@ -145,22 +160,26 @@ async def async_setup_entry(
 class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
     """Base representation of a BOM Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,) -> None:
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription, device_type: str = "Sensors") -> None:
         """Initialize the sensor."""
         super().__init__(hass_data[COORDINATOR])
         self.collector: Collector = hass_data[COLLECTOR]
         self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name: str = location_name
+        self.entity_prefix: str = entity_prefix
         self.sensor_name: str = sensor_name
         self.current_state: Any = None
         self.entity_description = description
 
+        # Determine device identifier suffix based on device type
+        device_suffix = device_type.lower().replace(" ", "_")
+
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"bom_{self.location_name}")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_{device_suffix}")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name}",
+            name=f"BOM {self.location_name} {device_type}",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -186,14 +205,14 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
 class ObservationSensor(SensorBase):
     """Representation of a BOM Observation Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Sensors")
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -267,15 +286,15 @@ class ObservationSensor(SensorBase):
 class ForecastSensor(SensorBase):
     """Representation of a BOM Forecast Sensor."""
 
-    def __init__(self, hass_data, location_name, day, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, day, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
         self.day = day
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.day}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.day}_{self.sensor_name}"
 
     @property
     def native_value(self):
@@ -358,14 +377,14 @@ class ForecastSensor(SensorBase):
 class NowLaterSensor(SensorBase):
     """Representation of a BOM Forecast Sensor."""
 
-    def __init__(self, hass_data, location_name, sensor_name, description: SensorEntityDescription,):
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name, sensor_name, description)
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
 
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_{self.sensor_name}"
+        return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
     def native_value(self):

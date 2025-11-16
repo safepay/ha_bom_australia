@@ -21,6 +21,7 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
+    CONF_ENTITY_PREFIX,
     CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
@@ -47,8 +48,17 @@ async def async_setup_entry(
         CONF_WEATHER_NAME, config_entry.data.get(CONF_WEATHER_NAME, "Home")
     )
 
+    # Get entity prefix from config, fallback to default based on location name
+    entity_prefix = config_entry.options.get(
+        CONF_ENTITY_PREFIX,
+        config_entry.data.get(
+            CONF_ENTITY_PREFIX,
+            f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+        )
+    )
+
     # Create a single comprehensive weather entity that supports both daily and hourly forecasts
-    new_entities.append(BomWeather(hass_data, location_name))
+    new_entities.append(BomWeather(hass_data, location_name, entity_prefix))
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -57,17 +67,18 @@ async def async_setup_entry(
 class WeatherBase(WeatherEntity):
     """Base representation of a BOM weather entity."""
 
-    def __init__(self, hass_data, location_name) -> None:
+    def __init__(self, hass_data, location_name, entity_prefix) -> None:
         """Initialize the sensor."""
         self.collector: Collector = hass_data[COLLECTOR]
         self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name: str = location_name
+        self.entity_prefix: str = entity_prefix
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"bom_{self.location_name}")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_weather")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name}",
+            name=f"BOM {self.location_name} Weather",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -176,9 +187,9 @@ class WeatherBase(WeatherEntity):
 class BomWeather(WeatherBase):
     """Comprehensive representation of a BOM weather entity with daily and hourly forecasts."""
 
-    def __init__(self, hass_data, location_name):
+    def __init__(self, hass_data, location_name, entity_prefix):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name)
+        super().__init__(hass_data, location_name, entity_prefix)
 
     @property
     def supported_features(self):
@@ -193,7 +204,7 @@ class BomWeather(WeatherBase):
     @property
     def unique_id(self):
         """Return Unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_weather"
+        return f"{self.entity_prefix}_weather"
 
     @property
     def extra_state_attributes(self):

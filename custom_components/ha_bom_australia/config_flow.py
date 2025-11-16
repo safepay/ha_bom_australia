@@ -8,20 +8,20 @@ from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
-    CONF_FORECASTS_BASENAME,
+    CONF_ENTITY_PREFIX,
     CONF_FORECASTS_CREATE,
     CONF_FORECASTS_DAYS,
     CONF_FORECASTS_MONITORED,
-    CONF_OBSERVATIONS_BASENAME,
     CONF_OBSERVATIONS_CREATE,
     CONF_OBSERVATIONS_MONITORED,
-    CONF_WARNINGS_BASENAME,
     CONF_WARNINGS_CREATE,
+    CONF_WARNINGS_MONITORED,
     CONF_WEATHER_NAME,
+    DEFAULT_FORECAST_DAYS,
     DOMAIN,
     OBSERVATION_SENSOR_TYPES,
     FORECAST_SENSOR_TYPES,
-    WARNING_SENSOR_TYPES,
+    WARNING_TYPES,
 )
 from .PyBoM.collector import Collector
 
@@ -88,9 +88,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Get location and station information
         location_name = self.collector.locations_data["data"]["name"]
 
+        # Generate default entity prefix from location name
+        default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+
         # Build description with station information
         description_placeholders = {
             "location_name": location_name,
+            "default_prefix": default_prefix,
         }
 
         # Try to get station name from observations if available
@@ -107,6 +111,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_WEATHER_NAME,
                     default=location_name,
+                ): str,
+                vol.Required(
+                    CONF_ENTITY_PREFIX,
+                    default=default_prefix,
                 ): str,
             }
         )
@@ -155,7 +163,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 elif self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 elif self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -181,10 +189,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_OBSERVATIONS_BASENAME,
-                    default=self.collector.observations_data["data"]["station"]["name"],
-                ): str,
                 vol.Required(CONF_OBSERVATIONS_MONITORED): cv.multi_select(monitored),
             }
         )
@@ -198,7 +202,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 elif self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -222,16 +226,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         for sensor in FORECAST_SENSOR_TYPES:
             monitored[sensor.key] = sensor.name
 
+        # Create day selection options (0-6 for 7 days)
+        days_options = {
+            0: "Day 0 (Today)",
+            1: "Day 1 (Tomorrow)",
+            2: "Day 2",
+            3: "Day 3",
+            4: "Day 4",
+            5: "Day 5",
+            6: "Day 6",
+        }
+
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_FORECASTS_BASENAME,
-                    default=self.collector.locations_data["data"]["name"],
-                ): str,
                 vol.Required(CONF_FORECASTS_MONITORED): cv.multi_select(monitored),
-                vol.Required(CONF_FORECASTS_DAYS): vol.All(
-                    vol.Coerce(int), vol.Range(0, 7)
-                ),
+                vol.Required(CONF_FORECASTS_DAYS, default=DEFAULT_FORECAST_DAYS): cv.multi_select(days_options),
             }
         )
 
@@ -241,7 +250,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.data.update(user_input)
 
                 if self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -257,14 +266,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="forecasts_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_warnings_basename(self, user_input=None):
-        """Handle the forecasts monitored step."""
+    async def async_step_warnings_monitored(self, user_input=None):
+        """Handle the warnings monitored step."""
+        # Create warning type selection options
+        warnings_options = {}
+        for warning_type, warning_info in WARNING_TYPES.items():
+            warnings_options[warning_type] = warning_info["name"]
+
+        # Default to all warning types selected
+        default_warnings = list(WARNING_TYPES.keys())
+
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_WARNINGS_BASENAME,
-                    default=self.collector.locations_data["data"]["name"],
-                ): str,
+                vol.Required(CONF_WARNINGS_MONITORED, default=default_warnings): cv.multi_select(warnings_options),
             }
         )
 
@@ -283,7 +297,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="warnings_basename", data_schema=data_schema, errors=errors
+            step_id="warnings_monitored", data_schema=data_schema, errors=errors
         )
 
 
@@ -429,7 +443,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 elif self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 elif self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -456,16 +470,6 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         data_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_OBSERVATIONS_BASENAME,
-                    default=self.config_entry.options.get(
-                        CONF_OBSERVATIONS_BASENAME,
-                        self.config_entry.data.get(
-                            CONF_OBSERVATIONS_BASENAME,
-                            self.collector.observations_data["data"]["station"]["name"],
-                        ),
-                    ),
-                ): str,
-                vol.Required(
                     CONF_OBSERVATIONS_MONITORED,
                     default=self.config_entry.options.get(
                         CONF_OBSERVATIONS_MONITORED,
@@ -484,7 +488,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 if self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 elif self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -508,18 +512,19 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         for sensor in FORECAST_SENSOR_TYPES:
             monitored[sensor.key] = sensor.name
 
+        # Create day selection options (0-6 for 7 days)
+        days_options = {
+            0: "Day 0 (Today)",
+            1: "Day 1 (Tomorrow)",
+            2: "Day 2",
+            3: "Day 3",
+            4: "Day 4",
+            5: "Day 5",
+            6: "Day 6",
+        }
+
         data_schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_FORECASTS_BASENAME,
-                    default=self.config_entry.options.get(
-                        CONF_FORECASTS_BASENAME,
-                        self.config_entry.data.get(
-                            CONF_FORECASTS_BASENAME,
-                            self.collector.locations_data["data"]["name"],
-                        ),
-                    ),
-                ): str,
                 vol.Required(
                     CONF_FORECASTS_MONITORED,
                     default=self.config_entry.options.get(
@@ -531,9 +536,9 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                     CONF_FORECASTS_DAYS,
                     default=self.config_entry.options.get(
                         CONF_FORECASTS_DAYS,
-                        self.config_entry.data.get(CONF_FORECASTS_DAYS, 0),
+                        self.config_entry.data.get(CONF_FORECASTS_DAYS, DEFAULT_FORECAST_DAYS),
                     ),
-                ): vol.All(vol.Coerce(int), vol.Range(0, 7)),
+                ): cv.multi_select(days_options),
             }
         )
 
@@ -543,7 +548,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 self.data.update(user_input)
 
                 if self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_basename()
+                    return await self.async_step_warnings_monitored()
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -559,20 +564,25 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="forecasts_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_warnings_basename(self, user_input=None):
-        """Handle the forecasts monitored step."""
+    async def async_step_warnings_monitored(self, user_input=None):
+        """Handle the warnings monitored step."""
+        # Create warning type selection options
+        warnings_options = {}
+        for warning_type, warning_info in WARNING_TYPES.items():
+            warnings_options[warning_type] = warning_info["name"]
+
+        # Default to all warning types selected
+        default_warnings = list(WARNING_TYPES.keys())
+
         data_schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_WARNINGS_BASENAME,
+                    CONF_WARNINGS_MONITORED,
                     default=self.config_entry.options.get(
-                        CONF_WARNINGS_BASENAME,
-                        self.config_entry.data.get(
-                            CONF_WARNINGS_BASENAME,
-                            self.collector.locations_data["data"]["name"],
-                        ),
+                        CONF_WARNINGS_MONITORED,
+                        self.config_entry.data.get(CONF_WARNINGS_MONITORED, default_warnings),
                     ),
-                ): str,
+                ): cv.multi_select(warnings_options),
             }
         )
 
@@ -591,7 +601,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="warnings_basename", data_schema=data_schema, errors=errors
+            step_id="warnings_monitored", data_schema=data_schema, errors=errors
         )
 
 

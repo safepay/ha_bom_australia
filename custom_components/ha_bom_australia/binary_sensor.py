@@ -18,31 +18,19 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
+    CONF_ENTITY_PREFIX,
     CONF_WARNINGS_CREATE,
-    CONF_WARNINGS_BASENAME,
+    CONF_WARNINGS_MONITORED,
+    CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
     SHORT_ATTRIBUTION,
     MODEL_NAME,
+    WARNING_TYPES,
 )
 from .PyBoM.collector import Collector
 
 _LOGGER = logging.getLogger(__name__)
-
-# Warning type mappings for BOM warnings
-WARNING_TYPES = {
-    "flood": {"name": "Flood Warning", "icon": "mdi:home-flood"},
-    "severe_thunderstorm": {"name": "Severe Thunderstorm Warning", "icon": "mdi:weather-lightning"},
-    "severe_weather": {"name": "Severe Weather Warning", "icon": "mdi:alert"},
-    "fire": {"name": "Fire Weather Warning", "icon": "mdi:fire"},
-    "tropical_cyclone": {"name": "Tropical Cyclone Warning", "icon": "mdi:weather-hurricane"},
-    "storm": {"name": "Storm Warning", "icon": "mdi:weather-lightning-rainy"},
-    "wind": {"name": "Wind Warning", "icon": "mdi:weather-windy"},
-    "sheep_graziers": {"name": "Sheep Graziers Warning", "icon": "mdi:sheep"},
-    "heat": {"name": "Heat Warning", "icon": "mdi:thermometer-alert"},
-    "tsunami": {"name": "Tsunami Warning", "icon": "mdi:waves"},
-    "marine": {"name": "Marine Warning", "icon": "mdi:ferry"},
-}
 
 
 async def async_setup_entry(
@@ -52,24 +40,38 @@ async def async_setup_entry(
 ) -> None:
     """Add binary sensors for warnings if enabled."""
     # Check if warnings are enabled
-    if not config_entry.options.get(CONF_WARNINGS_CREATE, False):
+    if not config_entry.options.get(CONF_WARNINGS_CREATE, config_entry.data.get(CONF_WARNINGS_CREATE, False)):
         _LOGGER.debug("Warning binary sensors not enabled in config")
         return
 
     hass_data = hass.data[DOMAIN][config_entry.entry_id]
-    collector: Collector = hass_data[COLLECTOR]
 
+    # Get location name and entity prefix (shared across all sensors)
     location_name = config_entry.options.get(
-        CONF_WARNINGS_BASENAME,
-        config_entry.data.get(CONF_WARNINGS_BASENAME, "Home"),
+        CONF_WEATHER_NAME, config_entry.data.get(CONF_WEATHER_NAME, "Home")
+    )
+    entity_prefix = config_entry.options.get(
+        CONF_ENTITY_PREFIX,
+        config_entry.data.get(
+            CONF_ENTITY_PREFIX,
+            f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+        )
     )
 
-    # Create binary sensors for each warning type
+    # Get which warning types to create
+    warnings_monitored = config_entry.options.get(
+        CONF_WARNINGS_MONITORED,
+        config_entry.data.get(CONF_WARNINGS_MONITORED, list(WARNING_TYPES.keys()))
+    )
+
+    # Create binary sensors for each enabled warning type
     new_entities = []
-    for warning_type, warning_info in WARNING_TYPES.items():
-        new_entities.append(
-            BomWarningSensor(hass_data, location_name, warning_type, warning_info)
-        )
+    for warning_type in warnings_monitored:
+        if warning_type in WARNING_TYPES:
+            warning_info = WARNING_TYPES[warning_type]
+            new_entities.append(
+                BomWarningSensor(hass_data, location_name, entity_prefix, warning_type, warning_info)
+            )
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -79,21 +81,22 @@ class BomWarningSensor(BinarySensorEntity):
     """Representation of a BOM Warning Binary Sensor."""
 
     def __init__(
-        self, hass_data, location_name: str, warning_type: str, warning_info: dict
+        self, hass_data, location_name: str, entity_prefix: str, warning_type: str, warning_info: dict
     ) -> None:
         """Initialize the binary sensor."""
         self.collector: Collector = hass_data[COLLECTOR]
         self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name = location_name
+        self.entity_prefix = entity_prefix
         self.warning_type = warning_type
         self.warning_info = warning_info
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"bom_{self.location_name}_warnings")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_binary_warning_sensors")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name} Warnings",
+            name=f"BOM {self.location_name} Binary Warning Sensors",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -119,7 +122,7 @@ class BomWarningSensor(BinarySensorEntity):
     @property
     def unique_id(self) -> str:
         """Return unique ID string."""
-        return f"bom_{self.location_name.lower().replace(' ', '_')}_warning_{self.warning_type}"
+        return f"{self.entity_prefix}_warning_{self.warning_type}"
 
     @property
     def icon(self) -> str:
@@ -135,11 +138,16 @@ class BomWarningSensor(BinarySensorEntity):
                 and "data" in self.collector.warnings_data
             ):
                 warnings = self.collector.warnings_data["data"]
-                # Check if any warning matches this type
+                # Check if any warning matches this type and is active
                 for warning in warnings:
                     warning_id = warning.get("id", "")
                     warning_title = warning.get("title", "").lower()
                     warning_type_api = warning.get("type", "").lower()
+                    phase = warning.get("phase", "").lower()
+
+                    # Skip warnings with inactive phases
+                    if self._is_inactive_phase(phase):
+                        continue
 
                     # Match based on type or title containing keywords
                     if self._matches_warning_type(warning_id, warning_title, warning_type_api):
@@ -148,6 +156,18 @@ class BomWarningSensor(BinarySensorEntity):
         except (KeyError, TypeError) as err:
             _LOGGER.debug(f"Error checking warning state for {self.warning_type}: {err}")
             return False
+
+    def _is_inactive_phase(self, phase: str) -> bool:
+        """Check if a warning phase is inactive."""
+        inactive_phases = [
+            "cancelled",
+            "cancel",
+            "final",
+            "completed",
+            "expired",
+            "finished",
+        ]
+        return phase in inactive_phases
 
     def _matches_warning_type(self, warning_id: str, warning_title: str, warning_type_api: str) -> bool:
         """Check if a warning matches this sensor's type."""
@@ -187,41 +207,36 @@ class BomWarningSensor(BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         try:
-            attrs = {}
-            active_warnings = []
+            attrs = {"attribution": ATTRIBUTION}
 
             if (
                 self.collector.warnings_data
                 and "data" in self.collector.warnings_data
             ):
                 warnings = self.collector.warnings_data["data"]
+                # Find the first active warning of this type
                 for warning in warnings:
                     warning_id = warning.get("id", "")
                     warning_title = warning.get("title", "").lower()
                     warning_type_api = warning.get("type", "").lower()
+                    phase = warning.get("phase", "")
+
+                    # Skip warnings with inactive phases
+                    if self._is_inactive_phase(phase.lower()):
+                        continue
 
                     if self._matches_warning_type(warning_id, warning_title, warning_type_api):
-                        warning_data = {
-                            "title": warning.get("title"),
-                            "type": warning.get("type"),
-                            "issue_time": warning.get("issue_time"),
-                            "expiry_time": warning.get("expiry_time"),
-                            "id": warning.get("id"),
-                            "short_title": warning.get("short_title"),
-                            "state": warning.get("state"),
-                            "warning_group_type": warning.get("warning_group_type"),
-                        }
-                        # Add severity if available (minor, moderate, severe)
-                        if "phase" in warning:
-                            warning_data["severity"] = warning.get("phase")
-
-                        active_warnings.append(warning_data)
-
-            attrs["warnings"] = active_warnings
-            attrs["warning_count"] = len(active_warnings)
-            attrs["attribution"] = ATTRIBUTION
+                        # Add attributes for this active warning
+                        attrs["ID"] = warning.get("id")
+                        attrs["title"] = warning.get("title")
+                        attrs["warning_group_type"] = warning.get("warning_group_type")
+                        attrs["phase"] = phase
+                        attrs["issue_time"] = warning.get("issue_time")
+                        attrs["expiry_time"] = warning.get("expiry_time")
+                        # Stop after finding the first active warning
+                        break
 
             return attrs
         except (KeyError, TypeError) as err:
             _LOGGER.debug(f"Error building warning attributes for {self.warning_type}: {err}")
-            return {"attribution": ATTRIBUTION, "warnings": [], "warning_count": 0}
+            return {"attribution": ATTRIBUTION}
