@@ -20,30 +20,17 @@ from .const import (
     COLLECTOR,
     CONF_ENTITY_PREFIX,
     CONF_WARNINGS_CREATE,
-    CONF_WARNINGS_BASENAME,
+    CONF_WARNINGS_MONITORED,
+    CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
     SHORT_ATTRIBUTION,
     MODEL_NAME,
+    WARNING_TYPES,
 )
 from .PyBoM.collector import Collector
 
 _LOGGER = logging.getLogger(__name__)
-
-# Warning type mappings for BOM warnings
-WARNING_TYPES = {
-    "flood": {"name": "Flood Warning", "icon": "mdi:home-flood"},
-    "severe_thunderstorm": {"name": "Severe Thunderstorm Warning", "icon": "mdi:weather-lightning"},
-    "severe_weather": {"name": "Severe Weather Warning", "icon": "mdi:alert"},
-    "fire": {"name": "Fire Weather Warning", "icon": "mdi:fire"},
-    "tropical_cyclone": {"name": "Tropical Cyclone Warning", "icon": "mdi:weather-hurricane"},
-    "storm": {"name": "Storm Warning", "icon": "mdi:weather-lightning-rainy"},
-    "wind": {"name": "Wind Warning", "icon": "mdi:weather-windy"},
-    "sheep_graziers": {"name": "Sheep Graziers Warning", "icon": "mdi:sheep"},
-    "heat": {"name": "Heat Warning", "icon": "mdi:thermometer-alert"},
-    "tsunami": {"name": "Tsunami Warning", "icon": "mdi:waves"},
-    "marine": {"name": "Marine Warning", "icon": "mdi:ferry"},
-}
 
 
 async def async_setup_entry(
@@ -53,19 +40,16 @@ async def async_setup_entry(
 ) -> None:
     """Add binary sensors for warnings if enabled."""
     # Check if warnings are enabled
-    if not config_entry.options.get(CONF_WARNINGS_CREATE, False):
+    if not config_entry.options.get(CONF_WARNINGS_CREATE, config_entry.data.get(CONF_WARNINGS_CREATE, False)):
         _LOGGER.debug("Warning binary sensors not enabled in config")
         return
 
     hass_data = hass.data[DOMAIN][config_entry.entry_id]
-    collector: Collector = hass_data[COLLECTOR]
 
+    # Get location name and entity prefix (shared across all sensors)
     location_name = config_entry.options.get(
-        CONF_WARNINGS_BASENAME,
-        config_entry.data.get(CONF_WARNINGS_BASENAME, "Home"),
+        CONF_WEATHER_NAME, config_entry.data.get(CONF_WEATHER_NAME, "Home")
     )
-
-    # Get entity prefix from config, fallback to default based on location name
     entity_prefix = config_entry.options.get(
         CONF_ENTITY_PREFIX,
         config_entry.data.get(
@@ -74,12 +58,20 @@ async def async_setup_entry(
         )
     )
 
-    # Create binary sensors for each warning type
+    # Get which warning types to create
+    warnings_monitored = config_entry.options.get(
+        CONF_WARNINGS_MONITORED,
+        config_entry.data.get(CONF_WARNINGS_MONITORED, list(WARNING_TYPES.keys()))
+    )
+
+    # Create binary sensors for each enabled warning type
     new_entities = []
-    for warning_type, warning_info in WARNING_TYPES.items():
-        new_entities.append(
-            BomWarningSensor(hass_data, location_name, entity_prefix, warning_type, warning_info)
-        )
+    for warning_type in warnings_monitored:
+        if warning_type in WARNING_TYPES:
+            warning_info = WARNING_TYPES[warning_type]
+            new_entities.append(
+                BomWarningSensor(hass_data, location_name, entity_prefix, warning_type, warning_info)
+            )
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -101,10 +93,10 @@ class BomWarningSensor(BinarySensorEntity):
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{self.entity_prefix}_warnings")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_binary_warning_sensors")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name} Warnings",
+            name=f"BOM {self.location_name} Binary Warning Sensors",
         )
 
     async def async_added_to_hass(self) -> None:

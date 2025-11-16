@@ -75,10 +75,10 @@ class WeatherBase(WeatherEntity):
         self.entity_prefix: str = entity_prefix
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, self.entity_prefix)},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_weather")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name}",
+            name=f"BOM {self.location_name} Weather",
         )
 
     async def async_added_to_hass(self) -> None:

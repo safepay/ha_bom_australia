@@ -24,15 +24,15 @@ UPDATE_LISTENER: Final = "update_listener"
 
 CONF_WEATHER_NAME: Final = "weather_name"
 CONF_ENTITY_PREFIX: Final = "entity_prefix"
-CONF_FORECASTS_BASENAME: Final = "forecasts_basename"
 CONF_FORECASTS_CREATE: Final = "forecasts_create"
 CONF_FORECASTS_DAYS: Final = "forecasts_days"
 CONF_FORECASTS_MONITORED: Final = "forecasts_monitored"
-CONF_OBSERVATIONS_BASENAME: Final = "observations_basename"
 CONF_OBSERVATIONS_CREATE: Final = "observations_create"
 CONF_OBSERVATIONS_MONITORED: Final = "observations_monitored"
 CONF_WARNINGS_CREATE: Final = "warnings_create"
-CONF_WARNINGS_BASENAME: Final = "warnings_basename"
+CONF_WARNINGS_MONITORED: Final = "warnings_monitored"
+
+DEFAULT_FORECAST_DAYS: Final = [0, 1, 2, 3, 4]  # Default to 5 days (0-4)
 
 COORDINATOR: Final = "coordinator"
 DOMAIN: Final = "ha_bom_australia"
@@ -301,3 +301,18 @@ WARNING_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Warnings",
     ),
 )
+
+# Warning type mappings for BOM warnings
+WARNING_TYPES: Final = {
+    "flood": {"name": "Flood Warning", "icon": "mdi:home-flood"},
+    "severe_thunderstorm": {"name": "Severe Thunderstorm Warning", "icon": "mdi:weather-lightning"},
+    "severe_weather": {"name": "Severe Weather Warning", "icon": "mdi:alert"},
+    "fire": {"name": "Fire Weather Warning", "icon": "mdi:fire"},
+    "tropical_cyclone": {"name": "Tropical Cyclone Warning", "icon": "mdi:weather-hurricane"},
+    "storm": {"name": "Storm Warning", "icon": "mdi:weather-lightning-rainy"},
+    "wind": {"name": "Wind Warning", "icon": "mdi:weather-windy"},
+    "sheep_graziers": {"name": "Sheep Graziers Warning", "icon": "mdi:sheep"},
+    "heat": {"name": "Heat Warning", "icon": "mdi:thermometer-alert"},
+    "tsunami": {"name": "Tsunami Warning", "icon": "mdi:waves"},
+    "marine": {"name": "Marine Warning", "icon": "mdi:ferry"},
+}
