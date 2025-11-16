@@ -82,7 +82,7 @@ logger:
 
 ## About This Integration
 
-This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to follow the WillyWeather integration pattern and avoid conflicts with existing integrations.
+This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to avoid conflicts with existing integrations.
 
 **Key differences from the original:**
 - Uses directory name `ha_bom_australia` instead of `bureau_of_meteorology`
@@ -113,7 +113,6 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 
 **Credits:**
 - Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
-- Refactoring inspired by the [WillyWeather integration](https://github.com/safepay/willyweather-forecast-home-assistant) pattern
 
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
