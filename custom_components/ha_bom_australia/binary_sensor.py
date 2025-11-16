@@ -138,11 +138,16 @@ class BomWarningSensor(BinarySensorEntity):
                 and "data" in self.collector.warnings_data
             ):
                 warnings = self.collector.warnings_data["data"]
-                # Check if any warning matches this type
+                # Check if any warning matches this type and is active
                 for warning in warnings:
                     warning_id = warning.get("id", "")
                     warning_title = warning.get("title", "").lower()
                     warning_type_api = warning.get("type", "").lower()
+                    phase = warning.get("phase", "").lower()
+
+                    # Skip warnings with inactive phases
+                    if self._is_inactive_phase(phase):
+                        continue
 
                     # Match based on type or title containing keywords
                     if self._matches_warning_type(warning_id, warning_title, warning_type_api):
@@ -151,6 +156,18 @@ class BomWarningSensor(BinarySensorEntity):
         except (KeyError, TypeError) as err:
             _LOGGER.debug(f"Error checking warning state for {self.warning_type}: {err}")
             return False
+
+    def _is_inactive_phase(self, phase: str) -> bool:
+        """Check if a warning phase is inactive."""
+        inactive_phases = [
+            "cancelled",
+            "cancel",
+            "final",
+            "completed",
+            "expired",
+            "finished",
+        ]
+        return phase in inactive_phases
 
     def _matches_warning_type(self, warning_id: str, warning_title: str, warning_type_api: str) -> bool:
         """Check if a warning matches this sensor's type."""
@@ -190,41 +207,36 @@ class BomWarningSensor(BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         try:
-            attrs = {}
-            active_warnings = []
+            attrs = {"attribution": ATTRIBUTION}
 
             if (
                 self.collector.warnings_data
                 and "data" in self.collector.warnings_data
             ):
                 warnings = self.collector.warnings_data["data"]
+                # Find the first active warning of this type
                 for warning in warnings:
                     warning_id = warning.get("id", "")
                     warning_title = warning.get("title", "").lower()
                     warning_type_api = warning.get("type", "").lower()
+                    phase = warning.get("phase", "")
+
+                    # Skip warnings with inactive phases
+                    if self._is_inactive_phase(phase.lower()):
+                        continue
 
                     if self._matches_warning_type(warning_id, warning_title, warning_type_api):
-                        warning_data = {
-                            "title": warning.get("title"),
-                            "type": warning.get("type"),
-                            "issue_time": warning.get("issue_time"),
-                            "expiry_time": warning.get("expiry_time"),
-                            "id": warning.get("id"),
-                            "short_title": warning.get("short_title"),
-                            "state": warning.get("state"),
-                            "warning_group_type": warning.get("warning_group_type"),
-                        }
-                        # Add severity if available (minor, moderate, severe)
-                        if "phase" in warning:
-                            warning_data["severity"] = warning.get("phase")
-
-                        active_warnings.append(warning_data)
-
-            attrs["warnings"] = active_warnings
-            attrs["warning_count"] = len(active_warnings)
-            attrs["attribution"] = ATTRIBUTION
+                        # Add attributes for this active warning
+                        attrs["ID"] = warning.get("id")
+                        attrs["title"] = warning.get("title")
+                        attrs["warning_group_type"] = warning.get("warning_group_type")
+                        attrs["phase"] = phase
+                        attrs["issue_time"] = warning.get("issue_time")
+                        attrs["expiry_time"] = warning.get("expiry_time")
+                        # Stop after finding the first active warning
+                        break
 
             return attrs
         except (KeyError, TypeError) as err:
             _LOGGER.debug(f"Error building warning attributes for {self.warning_type}: {err}")
-            return {"attribution": ATTRIBUTION, "warnings": [], "warning_count": 0}
+            return {"attribution": ATTRIBUTION}
