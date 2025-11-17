@@ -8,7 +8,7 @@ import iso8601
 import zoneinfo
 from homeassistant.components.weather import Forecast, WeatherEntity, WeatherEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfSpeed, UnitOfTemperature
+from homeassistant.const import UnitOfSpeed, UnitOfTemperature, UnitOfPressure, UnitOfLength
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -169,6 +169,54 @@ class WeatherBase(WeatherEntity):
         return self.collector.observations_data["data"]["wind_direction"]
 
     @property
+    def native_wind_gust_speed(self):
+        """Return the wind gust speed."""
+        return self.collector.observations_data["data"].get("gust_speed_kilometre")
+
+    @property
+    def native_apparent_temperature(self):
+        """Return the apparent temperature (feels like)."""
+        return self.collector.observations_data["data"].get("temp_feels_like")
+
+    @property
+    def native_pressure(self):
+        """Return the pressure."""
+        return self.collector.observations_data["data"].get("pressure")
+
+    @property
+    def native_pressure_unit(self):
+        """Return the unit of measurement for pressure."""
+        return UnitOfPressure.HPA
+
+    @property
+    def native_visibility(self):
+        """Return the visibility."""
+        return self.collector.observations_data["data"].get("visibility_km")
+
+    @property
+    def native_visibility_unit(self):
+        """Return the unit of measurement for visibility."""
+        return UnitOfLength.KILOMETERS
+
+    @property
+    def cloud_coverage(self):
+        """Return the cloud coverage in oktas."""
+        return self.collector.observations_data["data"].get("cloud_oktas")
+
+    @property
+    def native_dew_point(self):
+        """Return the dew point."""
+        return self.collector.observations_data["data"].get("dew_point")
+
+    @property
+    def uv_index(self):
+        """Return the UV index from today's forecast."""
+        if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+            if len(self.collector.daily_forecasts_data["data"]) > 0:
+                return self.collector.daily_forecasts_data["data"][0].get("uv_max_index")
+        return None
+
+    @property
     def attribution(self):
         """Return the attribution."""
         return ATTRIBUTION
@@ -212,20 +260,17 @@ class BomWeather(WeatherBase):
         try:
             attrs = {}
 
-            # Add current observation data
+            # Add station data
             if self.collector.observations_data and "data" in self.collector.observations_data:
                 obs_data = self.collector.observations_data["data"]
-                attrs["feels_like"] = obs_data.get("temp_feels_like")
-                attrs["dew_point"] = obs_data.get("dew_point")
                 attrs["station_name"] = obs_data.get("station", {}).get("name")
                 attrs["station_id"] = obs_data.get("station", {}).get("bom_id")
 
-            # Add today's forecast data
+            # Add today's forecast data (supplementary information not in standard weather properties)
             if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
                 if len(self.collector.daily_forecasts_data["data"]) > 0:
                     today = self.collector.daily_forecasts_data["data"][0]
                     attrs["uv_category"] = today.get("uv_category")
-                    attrs["uv_max_index"] = today.get("uv_max_index")
                     attrs["uv_start_time"] = today.get("uv_start_time")
                     attrs["uv_end_time"] = today.get("uv_end_time")
                     attrs["fire_danger"] = today.get("fire_danger")
