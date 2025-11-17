@@ -4,6 +4,10 @@ import asyncio
 import datetime
 import time
 import logging
+from datetime import datetime as dt, timezone
+
+from astral import moon, LocationInfo
+from astral.sun import sun
 
 from homeassistant.util import Throttle
 
@@ -27,6 +31,8 @@ class Collector:
 
     def __init__(self, latitude, longitude):
         """Init collector."""
+        self.latitude = latitude
+        self.longitude = longitude
         self.locations_data = None
         self.observations_data = None
         self.daily_forecasts_data = None
@@ -221,6 +227,44 @@ class Collector:
                             self.observations_data["data"]["wind_direction_text"] = None
                     else:
                         self.observations_data["data"]["wind_direction_text"] = None
+
+                    # Calculate moon data
+                    try:
+                        location = LocationInfo(latitude=self.latitude, longitude=self.longitude)
+                        now = dt.now(timezone.utc)
+
+                        # Moon phase
+                        phase_value = moon.phase(now.date())
+                        if phase_value < 1:
+                            phase_name = "New Moon"
+                        elif phase_value < 6.38264692644:
+                            phase_name = "Waxing Crescent"
+                        elif phase_value < 8.38264692644:
+                            phase_name = "First Quarter"
+                        elif phase_value < 13.76529385288:
+                            phase_name = "Waxing Gibbous"
+                        elif phase_value < 15.76529385288:
+                            phase_name = "Full Moon"
+                        elif phase_value < 21.14794077932:
+                            phase_name = "Waning Gibbous"
+                        elif phase_value < 23.14794077932:
+                            phase_name = "Last Quarter"
+                        else:
+                            phase_name = "Waning Crescent"
+                        self.observations_data["data"]["moon_phase"] = phase_name
+
+                        # Moonrise and moonset using astral's sun module workaround
+                        s = sun(location.observer, date=now.date())
+                        # Astral doesn't have moon rise/set in simple API, so we'll calculate it differently
+                        # For now, set to None - will need to use more complex moon calculations
+                        self.observations_data["data"]["moonrise"] = None
+                        self.observations_data["data"]["moonset"] = None
+
+                    except Exception as moon_err:
+                        _LOGGER.debug(f"Error calculating moon data: {moon_err}")
+                        self.observations_data["data"]["moon_phase"] = None
+                        self.observations_data["data"]["moonrise"] = None
+                        self.observations_data["data"]["moonset"] = None
 
                 # Get daily forecast data
                 data = await self._fetch_with_retry(

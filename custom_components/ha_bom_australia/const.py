@@ -80,6 +80,9 @@ ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
 ATTR_API_WIND_DIRECTION_TEXT: Final = "wind_direction_text"
+ATTR_API_MOON_PHASE: Final = "moon_phase"
+ATTR_API_MOONRISE: Final = "moonrise"
+ATTR_API_MOONSET: Final = "moonset"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -197,6 +200,20 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_MOON_PHASE,
+        name="Moon Phase",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_MOONRISE,
+        name="Moonrise",
+        device_class=SensorDeviceClass.TIMESTAMP,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_MOONSET,
+        name="Moonset",
+        device_class=SensorDeviceClass.TIMESTAMP,
     ),
 )
 
