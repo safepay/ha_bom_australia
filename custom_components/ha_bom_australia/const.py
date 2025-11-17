@@ -79,7 +79,6 @@ ATTR_API_WIND_DIRECTION: Final = "wind_direction"
 ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
-ATTR_API_WIND_DIRECTION_TEXT: Final = "wind_direction_text"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -165,10 +164,7 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key=ATTR_API_WIND_DIRECTION,
         name="Wind Direction",
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_WIND_DIRECTION_TEXT,
-        name="Wind Direction Text",
+        icon="mdi:compass",
     ),
     SensorEntityDescription(
         key=ATTR_API_GUST_SPEED_KILOMETRE,
@@ -232,10 +228,12 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key=ATTR_API_UV_CATEGORY,
         name="UV Category",
+        icon="mdi:weather-sunny-alert",
     ),
     SensorEntityDescription(
         key=ATTR_API_UV_MAX_INDEX,
         name="UV Maximum Index",
+        icon="mdi:weather-sunny",
     ),
     SensorEntityDescription(
         key=ATTR_API_UV_START_TIME,
@@ -256,25 +254,30 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Rain Amount Minimum",
         native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         device_class=SensorDeviceClass.PRECIPITATION,
+        icon="mdi:weather-rainy",
     ),
     SensorEntityDescription(
         key=ATTR_API_RAIN_AMOUNT_MAX,
         name="Rain Amount Maximum",
         native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         device_class=SensorDeviceClass.PRECIPITATION,
+        icon="mdi:weather-rainy",
     ),
     SensorEntityDescription(
         key=ATTR_API_RAIN_AMOUNT_RANGE,
         name="Rain Amount Range",
+        icon="mdi:weather-rainy",
     ),
     SensorEntityDescription(
         key=ATTR_API_RAIN_CHANCE,
         name="Rain Probability",
         native_unit_of_measurement=PERCENTAGE,
+        icon="mdi:water-percent",
     ),
     SensorEntityDescription(
         key=ATTR_API_FIRE_DANGER,
         name="Fire Danger",
+        icon="mdi:fire",
     ),
     SensorEntityDescription(
         key=ATTR_API_NOW_NOW_LABEL,
@@ -300,11 +303,13 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         key=ATTR_API_ASTRONOMICAL_SUNRISE_TIME,
         name="Sunrise Time",
         device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:weather-sunset-up",
     ),
     SensorEntityDescription(
         key=ATTR_API_ASTRONOMICAL_SUNSET_TIME,
         name="Sunset Time",
         device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:weather-sunset-down",
     ),
 )
 

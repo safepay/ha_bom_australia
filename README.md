@@ -67,7 +67,7 @@ Each binary sensor includes:
 ### 3. Sensors (Observations & Forecasts)
 Regular sensors for:
 - Current observations (temperature, humidity, wind speed, rainfall, etc.)
-- Calculated observation sensors (dew point, delta-T, wind direction text)
+- Calculated observation sensors (dew point, delta-T)
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
 
@@ -140,7 +140,7 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 
 **Major improvements from the original:**
 - Comprehensive weather entity with standard Home Assistant properties (temperature, humidity, wind speed/gust/bearing, apparent temperature, dew point, UV index)
-- Calculated observation sensors (dew point using Magnus-Tetens formula, delta-T for fire weather, wind direction text from degrees)
+- Calculated observation sensors (dew point using Magnus-Tetens formula, delta-T for fire weather)
 - Individual binary sensors for each warning type using actual BOM API warning types with accurate phase-based filtering (only excludes cancelled warnings)
 - Australian postcode lookup for easier multi-location setup
 - Streamlined config flow with visible checkboxes and human-readable labels
