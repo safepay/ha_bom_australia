@@ -67,8 +67,7 @@
           "severe_weather_warning": "Severe Weather Warning",
           "marine_wind_warning": "Marine Wind Warning",
           "hazardous_surf_warning": "Hazardous Surf Warning",
-          "heatwave_warning": "Heatwave Warning",
-          "total_fire_ban": "Total Fire Ban"
+          "heatwave_warning": "Heatwave Warning"
         }
       },
       "forecasts_monitored": {
@@ -165,8 +164,7 @@
           "severe_weather_warning": "Severe Weather Warning",
           "marine_wind_warning": "Marine Wind Warning",
           "hazardous_surf_warning": "Hazardous Surf Warning",
-          "heatwave_warning": "Heatwave Warning",
-          "total_fire_ban": "Total Fire Ban"
+          "heatwave_warning": "Heatwave Warning"
         }
       },
       "forecasts_monitored": {

@@ -171,14 +171,9 @@ class BomWarningSensor(BinarySensorEntity):
         BOM API warning types match our sensor types directly:
         - flood_watch, flood_warning, sheep_graziers_warning, severe_thunderstorm_warning,
           severe_weather_warning, marine_wind_warning, hazardous_surf_warning, heatwave_warning
-
-        Special text-based sensors (no direct API type):
-        - total_fire_ban: detected from warning title/text
         """
         # Convert everything to lowercase for comparison
         warning_type_api = warning_type_api.lower()
-        warning_title = warning_title.lower()
-        warning_id = warning_id.lower()
         sensor_type = self.warning_type.lower()
 
         # Direct type match (primary method)
@@ -188,13 +183,6 @@ class BomWarningSensor(BinarySensorEntity):
         # Fallback: check if sensor type is in warning type
         if sensor_type in warning_type_api:
             return True
-
-        # Keyword-based matching for special sensors
-        if sensor_type == "total_fire_ban":
-            keywords = ["total fire ban", "fire ban"]
-            for keyword in keywords:
-                if keyword in warning_title or keyword in warning_id:
-                    return True
 
         return False
 
