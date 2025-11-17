@@ -75,6 +75,30 @@ Regular sensors for:
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
 
+## Breaking Changes
+
+**Important:** If upgrading from an earlier version, please note:
+
+1. **Entity Naming Changes**: All entities now use a consistent prefix format (`bom_{location}`). Previous installations may have used different naming patterns.
+
+2. **Warning Sensors**: Warning sensors have been completely redesigned:
+   - **Old**: Single `sensor.bom_warnings` with list of warnings in attributes
+   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.bom_{location}_warning_flood`)
+   - Old warning sensors will need to be removed manually from your configuration
+
+3. **Forecast Sensors**: Configuration has changed:
+   - **Old**: Multi-select dropdown for forecast days
+   - **New**: Single numeric input (0-7 days)
+   - Existing forecast sensors will be recreated with the new configuration
+
+4. **Device Organization**: Entities are now organized into separate devices:
+   - `BOM {location}` - Weather entity
+   - `BOM {location} Sensors` - Observation sensors
+   - `BOM {location} Forecast Sensors` - Forecast sensors
+   - `BOM {location} Warnings` - Warning binary sensors
+
+**Recommendation**: For cleanest upgrade, remove the old integration completely before installing the new version, then reconfigure from scratch.
+
 ## Configuration
 
 After you have installed the custom component (see above):
