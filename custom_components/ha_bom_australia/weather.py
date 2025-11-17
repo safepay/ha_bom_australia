@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, tzinfo
+from datetime import datetime
 
 import iso8601
-import zoneinfo
 from homeassistant.components.weather import Forecast, WeatherEntity, WeatherEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed, UnitOfTemperature, UnitOfPressure, UnitOfLength
@@ -87,7 +86,7 @@ class WeatherBase(WeatherEntity):
         self._update_callback()
 
     async def async_forecast_daily(self) -> list[Forecast]:
-        tzinfo = zoneinfo.ZoneInfo(self.collector.locations_data["data"]["timezone"])
+        tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
                 datetime=iso8601.parse_date(data["date"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
@@ -101,7 +100,7 @@ class WeatherBase(WeatherEntity):
         ]
 
     async def async_forecast_hourly(self) -> list[Forecast]:
-        tzinfo = zoneinfo.ZoneInfo(self.collector.locations_data["data"]["timezone"])
+        tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
                 datetime=iso8601.parse_date(data["time"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),

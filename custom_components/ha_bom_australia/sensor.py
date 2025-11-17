@@ -1,11 +1,9 @@
 """Platform for sensor integration."""
 import logging
-from datetime import datetime, tzinfo, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 import iso8601
-import zoneinfo
-import math #Required for calculated observations (e.g dew point)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import (
@@ -38,8 +36,8 @@ from .const import (
     MODEL_NAME,
     OBSERVATION_SENSOR_TYPES,
     FORECAST_SENSOR_TYPES,
-    ATTR_API_NON_NOW_LABEL,
-    ATTR_API_NON_TEMP_NOW,
+    ATTR_API_NOW_NOW_LABEL,
+    ATTR_API_NOW_TEMP_NOW,
     ATTR_API_NOW_LATER_LABEL,
     ATTR_API_NOW_TEMP_LATER,
 )
@@ -115,8 +113,8 @@ async def async_setup_entry(
         for day in forecast_days:
             for forecast in forecasts_monitored:
                 if forecast in [
-                    ATTR_API_NON_NOW_LABEL,
-                    ATTR_API_NON_TEMP_NOW,
+                    ATTR_API_NOW_NOW_LABEL,
+                    ATTR_API_NOW_TEMP_NOW,
                     ATTR_API_NOW_LATER_LABEL,
                     ATTR_API_NOW_TEMP_LATER,
                 ]:
@@ -185,7 +183,6 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
         self.async_on_remove(self.coordinator.async_add_listener(self._update_callback))
-        self.async_on_remove(self.coordinator.async_add_listener(self._update_callback))
         self._update_callback()
 
     @callback
@@ -224,7 +221,7 @@ class ObservationSensor(SensorBase):
         """Return the state attributes of the sensor."""
         attr = {}
 
-        tzinfo = zoneinfo.ZoneInfo(self.collector.locations_data["data"]["timezone"])
+        tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         for key in self.collector.observations_data["metadata"]:
             try:
                 attr[key] = iso8601.parse_date(self.collector.observations_data["metadata"][key]).astimezone(tzinfo).isoformat()
@@ -260,22 +257,14 @@ class ObservationSensor(SensorBase):
     @property
     def state(self):
         """Return the state of the sensor."""
-        if self.sensor_name == "dew_point":
-            temperature = self.collector.observations_data["data"]["temp"]
-            humidity = self.collector.observations_data["data"]["humidity"]
-            if temperature is not None and humidity is not None:
-                return calculate_dew_point(temperature, humidity)
-            else:
-                return None
+        if self.sensor_name in self.collector.observations_data["data"]:
+            if self.collector.observations_data["data"][self.sensor_name] is not None:
+                if self.sensor_name == "max_temp" or self.sensor_name == "min_temp":
+                    return self.collector.observations_data["data"][self.sensor_name]["value"]
+                else:
+                    return self.collector.observations_data["data"][self.sensor_name]
         else:
-            if self.sensor_name in self.collector.observations_data["data"]:
-                if self.collector.observations_data["data"][self.sensor_name] is not None:
-                    if self.sensor_name == "max_temp" or self.sensor_name == "min_temp":
-                        return self.collector.observations_data["data"][self.sensor_name]["value"]
-                    else:
-                        return self.collector.observations_data["data"][self.sensor_name]
-            else:
-                return "unavailable"
+            return "unavailable"
 
     @property
     def name(self):
@@ -308,7 +297,7 @@ class ForecastSensor(SensorBase):
 
         # If there is no data for this day, do not add attributes for this day.
         if self.day < len(self.collector.daily_forecasts_data["data"]):
-            tzinfo = zoneinfo.ZoneInfo(self.collector.locations_data["data"]["timezone"])
+            tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
             for key in self.collector.daily_forecasts_data["metadata"]:
                 try:
                     attr[key] = iso8601.parse_date(self.collector.daily_forecasts_data["metadata"][key]).astimezone(tzinfo).isoformat()
@@ -330,7 +319,7 @@ class ForecastSensor(SensorBase):
         # If there is no data for this day, return state as 'None'.
         if self.day < len(self.collector.daily_forecasts_data["data"]):
             if self.device_class == SensorDeviceClass.TIMESTAMP:
-                tzinfo = zoneinfo.ZoneInfo(
+                tzinfo = ZoneInfo(
                     self.collector.locations_data["data"]["timezone"]
                 )
                 try:
@@ -348,7 +337,7 @@ class ForecastSensor(SensorBase):
                     )
                 else:
                     utc = timezone.utc
-                    local = zoneinfo.ZoneInfo(self.collector.locations_data["data"]["timezone"])
+                    local = ZoneInfo(self.collector.locations_data["data"]["timezone"])
                     start_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
                     end_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_end_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
                     return (
@@ -358,7 +347,7 @@ class ForecastSensor(SensorBase):
                         f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
                     )
             new_state = self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
-            if type(new_state) == str and len(new_state) > 251:
+            if isinstance(new_state, str) and len(new_state) > 251:
                 self.current_state = new_state[:251] + "..."
             else:
                 self.current_state = new_state
@@ -410,10 +399,3 @@ class NowLaterSensor(SensorBase):
     def name(self):
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
-
-def calculate_dew_point(temperature, humidity):
-    """Calculate dew point using temperature and humidity observations"""
-    a, b = 17.27, 237.7  # Tetens equation constants
-    saturation_factor = ((a * temperature) / (b + temperature)) + math.log(humidity / 100.0)
-    dew_point = (b * saturation_factor) / (a - saturation_factor)
-    return round(dew_point, 1)

@@ -1,7 +1,6 @@
 """The BOM integration."""
-import asyncio
-import datetime
 import logging
+from datetime import timedelta
 
 from aiohttp.client_exceptions import ClientConnectorError
 from homeassistant.config_entries import ConfigEntry
@@ -34,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["binary_sensor", "sensor", "weather"]
 
-DEFAULT_SCAN_INTERVAL = datetime.timedelta(minutes=5)
+DEFAULT_SCAN_INTERVAL = timedelta(minutes=5)
 DEBOUNCE_TIME = 60  # in seconds
 
 

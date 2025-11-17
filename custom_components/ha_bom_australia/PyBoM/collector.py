@@ -10,7 +10,8 @@ from homeassistant.util import Throttle
 
 from .const import (
     MAP_MDI_ICON, URL_BASE, URL_DAILY,
-    URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS
+    URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS,
+    USER_AGENT, WIND_DIRECTIONS
 )
 from .helpers import (
     flatten_dict, geohash_encode,
@@ -89,7 +90,7 @@ class Collector:
     
     async def get_locations_data(self):
         """Get JSON location name from BOM API endpoint."""
-        headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+        headers = {"User-Agent": USER_AGENT}
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
                 data = await self._fetch_with_retry(
@@ -171,7 +172,7 @@ class Collector:
     @Throttle(datetime.timedelta(minutes=5))
     async def async_update(self):
         """Refresh the data on the collector object."""
-        headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+        headers = {"User-Agent": USER_AGENT}
         
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
@@ -216,10 +217,8 @@ class Collector:
                     wind_dir = self.observations_data["data"].get("wind_direction")
                     if wind_dir is not None and wind_dir != "unavailable":
                         try:
-                            directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                                        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
                             index = round(wind_dir / 22.5) % 16
-                            self.observations_data["data"]["wind_direction_text"] = directions[index]
+                            self.observations_data["data"]["wind_direction_text"] = WIND_DIRECTIONS[index]
                         except (TypeError, ValueError):
                             self.observations_data["data"]["wind_direction_text"] = None
                     else:
