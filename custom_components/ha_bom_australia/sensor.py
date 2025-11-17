@@ -31,6 +31,7 @@ from .const import (
     CONF_FORECASTS_MONITORED,
     CONF_OBSERVATIONS_CREATE,
     CONF_OBSERVATIONS_MONITORED,
+    CONF_WARNINGS_CREATE,
     CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
@@ -152,8 +153,21 @@ async def async_setup_entry(
                         )
                     )
 
-    # Note: Warnings are now handled by binary_sensor platform
-    # See binary_sensor.py for warning sensor implementation
+    # Create catch-all warnings sensor if warnings are enabled
+    create_warnings = config_entry.options.get(
+        CONF_WARNINGS_CREATE, config_entry.data.get(CONF_WARNINGS_CREATE)
+    )
+    if create_warnings is True:
+        new_entities.append(
+            WarningsSensor(
+                hass_data,
+                location_name,
+                entity_prefix,
+            )
+        )
+
+    # Note: Individual warning binary sensors are handled by binary_sensor platform
+    # See binary_sensor.py for warning binary sensor implementation
 
     if new_entities:
         async_add_entities(new_entities, update_before_add=False)
@@ -402,3 +416,63 @@ class NowLaterSensor(SensorBase):
     def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+
+
+class WarningsSensor(SensorBase):
+    """Representation of a BOM Warnings Sensor (catch-all for all warnings)."""
+
+    def __init__(self, hass_data, location_name, entity_prefix):
+        """Initialize the sensor."""
+        # Create a basic description for the warnings sensor
+        description = SensorEntityDescription(
+            key="warnings",
+            name="Warnings",
+            icon="mdi:alert-circle",
+        )
+        super().__init__(hass_data, location_name, entity_prefix, "warnings", description, device_type="Warnings")
+
+    @property
+    def unique_id(self) -> str:
+        """Return Unique ID string."""
+        return f"{self.entity_prefix}_warnings"
+
+    @property
+    def native_value(self) -> Any:
+        """Return the state of the device."""
+        return self.state
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the sensor."""
+        attr = {}
+
+        # Add all warnings data to attributes
+        if (
+            self.collector.warnings_data
+            and "data" in self.collector.warnings_data
+        ):
+            # Include the warnings array
+            attr["warnings"] = self.collector.warnings_data["data"]
+
+            # Include metadata
+            if "metadata" in self.collector.warnings_data:
+                attr["response_timestamp"] = self.collector.warnings_data["metadata"].get("response_timestamp")
+
+        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
+        return attr
+
+    @property
+    def state(self) -> Any:
+        """Return the state of the sensor (count of active warnings)."""
+        if (
+            self.collector.warnings_data
+            and "data" in self.collector.warnings_data
+        ):
+            # Return the count of warnings
+            return len(self.collector.warnings_data["data"])
+        return 0
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return f"BOM {self.location_name} Warnings"
