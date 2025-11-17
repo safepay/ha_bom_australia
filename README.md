@@ -30,7 +30,7 @@ This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http
 2. Copy the `custom_components/ha_bom_australia` directory to your Home Assistant's `custom_components` directory
 3. Restart Home Assistant
 
-**Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`bom_`) to avoid conflicts with the original Bureau of Meteorology integration.
+**Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`BoM_`) to avoid conflicts with the original Bureau of Meteorology integration.
 
 ## Features
 
@@ -70,6 +70,7 @@ Each binary sensor includes:
 ### 3. Sensors (Observations & Forecasts)
 Regular sensors for:
 - Current observations (temperature, humidity, wind speed, rainfall, etc.)
+- Calculated observation sensors (dew point, delta-T, wind direction text)
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
 
@@ -93,7 +94,7 @@ Regular sensors for:
    - `BOM {location} Forecast Sensors` - Forecast sensors
    - `BOM {location} Warnings` - Warning binary sensors
 
-**Note on Entity Naming**: The entity prefix is fully configurable during setup (defaults to `bom_{location}` but you can set it to match your existing setup). If you configure the same prefix as your previous installation, most entities will maintain their existing IDs.
+**Note on Entity Naming**: The entity prefix is fully configurable during setup (defaults to `BoM_{location}` but you can set it to match your existing setup). If you configure the same prefix as your previous installation, most entities will maintain their existing IDs.
 
 **Recommendation**: For cleanest upgrade, remove the old integration completely before installing the new version, then reconfigure from scratch.
 
@@ -142,6 +143,7 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 
 **Major improvements from the original:**
 - Comprehensive weather entity with all standard Home Assistant properties (apparent temperature, pressure, visibility, cloud coverage, dew point, wind gust, UV index)
+- Calculated observation sensors (dew point using Magnus-Tetens formula, delta-T for fire weather, wind direction text from degrees)
 - Individual binary sensors for each warning type using actual BOM API warning types with accurate phase-based filtering (only excludes cancelled warnings)
 - Australian postcode lookup for easier multi-location setup
 - Streamlined config flow with visible checkboxes and human-readable labels
