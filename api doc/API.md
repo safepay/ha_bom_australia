@@ -255,7 +255,7 @@ The following table shows all known BOM warning types and their support status i
 
 | Warning Type | Status | Display Name |
 |--------------|--------|--------------|
-| `bushwalkers_weather_alert` | ⚠️ Partial | Bushwalkers Alert (we use `bushwalkers_alert`) |
+| `bushwalkers_alert` | ✅ Supported | Bushwalkers Alert |
 | `coastal_hazard_warning` | ❌ Not Supported | Coastal Hazard Warning |
 | `fire_weather_warning` | ✅ Supported | Fire Weather Warning |
 | `flood_watch` | ✅ Supported | Flood Watch |
@@ -280,7 +280,9 @@ The following table shows all known BOM warning types and their support status i
 | `tropical_cyclone_ocean_wind_warning` | ❌ Not Supported | Tropical Cyclone Ocean Wind Warning |
 | `tropical_cyclone_technical_bulletin` | ❌ Not Supported | Tropical Cyclone Technical Bulletin |
 
-**Note:** Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.
+**Notes:**
+- Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.
+- The BOM website documentation lists some warning types (e.g., `bushwalkers_weather_alert`) that differ from what the API actually returns (e.g., `bushwalkers_alert`). This table reflects the actual API response values.
 
 ### Warning Field Values
 
