@@ -52,8 +52,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if PGEOCODE_AVAILABLE:
             data_schema = vol.Schema(
                 {
-                    vol.Optional(CONF_LATITUDE): cv.string,
-                    vol.Optional(CONF_LONGITUDE): cv.string,
+                    vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
+                    vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
+                    vol.Optional("use_postcode", default=False): bool,
                     vol.Optional("postcode"): cv.string,
                 }
             )
@@ -70,29 +71,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 latitude = user_input.get(CONF_LATITUDE)
                 longitude = user_input.get(CONF_LONGITUDE)
+                use_postcode = user_input.get("use_postcode", False)
                 postcode = user_input.get("postcode")
 
-                # If postcode is provided, convert to lat/long
-                if PGEOCODE_AVAILABLE and postcode and postcode.strip():
-                    nomi = pgeocode.Nominatim('AU')
-                    location = nomi.query_postal_code(postcode.strip())
+                # If use_postcode is checked and postcode is provided, convert to lat/long
+                if PGEOCODE_AVAILABLE and use_postcode:
+                    if postcode and postcode.strip():
+                        nomi = pgeocode.Nominatim('AU')
+                        location = nomi.query_postal_code(postcode.strip())
 
-                    if location.latitude is None or location.longitude is None:
-                        _LOGGER.debug(f"Invalid postcode: {postcode}")
-                        errors["base"] = "invalid_postcode"
+                        if location.latitude is None or location.longitude is None:
+                            _LOGGER.debug(f"Invalid postcode: {postcode}")
+                            errors["base"] = "invalid_postcode"
+                        else:
+                            latitude = float(location.latitude)
+                            longitude = float(location.longitude)
+                            _LOGGER.info(f"Postcode {postcode} resolved to: {latitude}, {longitude}")
                     else:
-                        latitude = float(location.latitude)
-                        longitude = float(location.longitude)
-                        _LOGGER.info(f"Postcode {postcode} resolved to: {latitude}, {longitude}")
-                # Otherwise, try to use provided lat/long
-                elif latitude and longitude:
-                    try:
-                        latitude = float(latitude)
-                        longitude = float(longitude)
-                    except (ValueError, TypeError):
-                        errors["base"] = "invalid_coords"
-                else:
-                    errors["base"] = "missing_location"
+                        errors["base"] = "postcode_required"
 
                 # Proceed if we have valid coordinates and no errors
                 if not errors:

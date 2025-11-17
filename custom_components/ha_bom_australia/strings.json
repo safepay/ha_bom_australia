@@ -3,11 +3,12 @@
     "step": {
       "user": {
         "title": "Set Up BOM Australia",
-        "description": "Enter your location using either coordinates OR Australian postcode to find the nearest Bureau of Meteorology weather station.\n\nYou can provide:\n  • Latitude and Longitude, OR\n  • Australian Postcode (e.g., 3000 for Melbourne)",
+        "description": "Enter your location to find the nearest Bureau of Meteorology weather station.\n\nBy default, your Home Assistant location is used. Alternatively, you can check the box below to search by Australian postcode instead.",
         "data": {
-          "latitude": "Latitude (or leave blank if using postcode)",
-          "longitude": "Longitude (or leave blank if using postcode)",
-          "postcode": "Australian Postcode (optional, overrides lat/long)"
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "use_postcode": "Use Australian postcode instead?",
+          "postcode": "Australian Postcode (e.g., 3000 for Melbourne)"
         }
       },
       "weather_name": {
@@ -205,7 +206,7 @@
     "cannot_connect": "Failed to connect to Bureau of Meteorology",
     "unknown": "Unexpected error occurred",
     "invalid_postcode": "Invalid Australian postcode. Please check and try again.",
-    "missing_location": "Please provide either latitude/longitude OR a postcode",
+    "postcode_required": "Please enter an Australian postcode when 'Use postcode' is checked.",
     "invalid_coords": "Invalid coordinates. Please check latitude and longitude values."
   },
   "abort": {
