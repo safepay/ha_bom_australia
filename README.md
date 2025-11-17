@@ -50,22 +50,20 @@ A comprehensive weather entity that combines both daily and hourly forecasts in 
 - Additional attributes: sunrise/sunset, fire danger, station information, warning count
 
 ### 2. Binary Sensors (Warnings)
-Individual binary sensors for different warning types:
-- Flood warnings
-- Severe thunderstorm warnings
-- Severe weather warnings
-- Fire weather warnings
-- Tropical cyclone warnings
-- Storm warnings
-- Wind warnings
-- Sheep graziers warnings
-- Heat warnings
-- Tsunami warnings
-- Marine warnings
+Individual binary sensors for different warning types (matching BOM API):
+- Flood Watch
+- Flood Warning
+- Sheep Graziers Warning
+- Severe Thunderstorm Warning
+- Severe Weather Warning
+- Marine Wind Warning
+- Hazardous Surf Warning
+- Heatwave Warning
 
 Each binary sensor includes:
-- On/off state based on active warnings
-- Severity information in attributes
+- On/off state based on active warnings (excludes only cancelled warnings)
+- Warning phase information (new, update, renewal, downgrade, upgrade, final, cancelled)
+- Severity and warning group type in attributes
 - Issue and expiry times
 - Detailed warning information
 
@@ -144,9 +142,11 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 
 **Major improvements from the original:**
 - Comprehensive weather entity with all standard Home Assistant properties (apparent temperature, pressure, visibility, cloud coverage, dew point, wind gust, UV index)
-- Individual binary sensors for each warning type with phase-based filtering
+- Individual binary sensors for each warning type using actual BOM API warning types with accurate phase-based filtering (only excludes cancelled warnings)
+- Australian postcode lookup for easier multi-location setup
 - Streamlined config flow with visible checkboxes and human-readable labels
 - Simplified entity naming with single prefix for all entities
+- Material Design Icon integration for consistent UI appearance
 - Can be installed alongside the original Bureau of Meteorology integration
 
 ## Credits
