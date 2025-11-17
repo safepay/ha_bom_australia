@@ -79,23 +79,23 @@ Regular sensors for:
 
 **Important:** If upgrading from an earlier version, please note:
 
-1. **Entity Naming Changes**: All entities now use a consistent prefix format (`bom_{location}`). Previous installations may have used different naming patterns.
-
-2. **Warning Sensors**: Warning sensors have been completely redesigned:
+1. **Warning Sensors**: Warning sensors have been completely redesigned:
    - **Old**: Single `sensor.bom_warnings` with list of warnings in attributes
-   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.bom_{location}_warning_flood`)
+   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.{prefix}_warning_flood`)
    - Old warning sensors will need to be removed manually from your configuration
 
-3. **Forecast Sensors**: Configuration has changed:
+2. **Forecast Sensors**: Configuration has changed:
    - **Old**: Multi-select dropdown for forecast days
    - **New**: Single numeric input (0-7 days)
    - Existing forecast sensors will be recreated with the new configuration
 
-4. **Device Organization**: Entities are now organized into separate devices:
+3. **Device Organization**: Entities are now organized into separate devices:
    - `BOM {location}` - Weather entity
    - `BOM {location} Sensors` - Observation sensors
    - `BOM {location} Forecast Sensors` - Forecast sensors
    - `BOM {location} Warnings` - Warning binary sensors
+
+**Note on Entity Naming**: The entity prefix is fully configurable during setup (defaults to `bom_{location}` but you can set it to match your existing setup). If you configure the same prefix as your previous installation, most entities will maintain their existing IDs.
 
 **Recommendation**: For cleanest upgrade, remove the old integration completely before installing the new version, then reconfigure from scratch.
 
