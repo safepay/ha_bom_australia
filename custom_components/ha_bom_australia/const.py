@@ -79,6 +79,7 @@ ATTR_API_WIND_DIRECTION: Final = "wind_direction"
 ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
+ATTR_API_WIND_DIRECTION_TEXT: Final = "wind_direction_text"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -164,6 +165,10 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key=ATTR_API_WIND_DIRECTION,
         name="Wind Direction",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_WIND_DIRECTION_TEXT,
+        name="Wind Direction Text",
     ),
     SensorEntityDescription(
         key=ATTR_API_GUST_SPEED_KILOMETRE,

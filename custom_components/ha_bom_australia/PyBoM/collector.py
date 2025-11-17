@@ -209,6 +209,19 @@ class Collector:
                     else:
                         self.observations_data["data"]["delta_t"] = None
 
+                    # Convert wind direction degrees to compass text
+                    wind_dir = self.observations_data["data"].get("wind_direction")
+                    if wind_dir is not None and wind_dir != "unavailable":
+                        try:
+                            directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                                        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+                            index = round(wind_dir / 22.5) % 16
+                            self.observations_data["data"]["wind_direction_text"] = directions[index]
+                        except (TypeError, ValueError):
+                            self.observations_data["data"]["wind_direction_text"] = None
+                    else:
+                        self.observations_data["data"]["wind_direction_text"] = None
+
                 # Get daily forecast data
                 data = await self._fetch_with_retry(
                     session, URL_BASE + self.geohash6 + URL_DAILY, "daily_forecasts"
