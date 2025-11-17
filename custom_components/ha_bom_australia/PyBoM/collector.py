@@ -201,17 +201,6 @@ class Collector:
                         self.observations_data["data"]["gust_speed_kilometre"] = "unavailable"
                         self.observations_data["data"]["gust_speed_knot"] = "unavailable"
 
-                    # Calculate Delta-T (temperature - dew point)
-                    temp = self.observations_data["data"].get("temp")
-                    dew_point = self.observations_data["data"].get("dew_point")
-                    if temp is not None and dew_point is not None:
-                        try:
-                            self.observations_data["data"]["delta_t"] = round(temp - dew_point, 1)
-                        except (TypeError, ValueError):
-                            self.observations_data["data"]["delta_t"] = None
-                    else:
-                        self.observations_data["data"]["delta_t"] = None
-
                     # Calculate dew point using Magnus-Tetens formula
                     temp = self.observations_data["data"].get("temp")
                     humidity = self.observations_data["data"].get("humidity")
@@ -228,6 +217,17 @@ class Collector:
                             self.observations_data["data"]["dew_point"] = None
                     else:
                         self.observations_data["data"]["dew_point"] = None
+
+                    # Calculate Delta-T (temperature - dew point)
+                    temp = self.observations_data["data"].get("temp")
+                    dew_point = self.observations_data["data"].get("dew_point")
+                    if temp is not None and dew_point is not None:
+                        try:
+                            self.observations_data["data"]["delta_t"] = round(temp - dew_point, 1)
+                        except (TypeError, ValueError):
+                            self.observations_data["data"]["delta_t"] = None
+                    else:
+                        self.observations_data["data"]["delta_t"] = None
 
                 # Get daily forecast data
                 data = await self._fetch_with_retry(
