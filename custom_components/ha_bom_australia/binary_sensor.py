@@ -93,10 +93,10 @@ class BomWarningSensor(BinarySensorEntity):
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{self.entity_prefix}_binary_warning_sensors")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_warnings")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name} Binary Warning Sensors",
+            name=f"BOM {self.location_name} Warnings",
         )
 
     async def async_added_to_hass(self) -> None:
