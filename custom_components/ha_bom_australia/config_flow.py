@@ -138,7 +138,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         location_name = self.collector.locations_data["data"]["name"]
 
         # Generate default entity prefix from location name
-        default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+        default_prefix = f"BoM_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         # Build description with station information
         description_placeholders = {

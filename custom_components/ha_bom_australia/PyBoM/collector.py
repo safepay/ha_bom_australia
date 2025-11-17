@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import time
 import logging
+import math
 
 from homeassistant.util import Throttle
 
@@ -27,6 +28,8 @@ class Collector:
 
     def __init__(self, latitude, longitude):
         """Init collector."""
+        self.latitude = latitude
+        self.longitude = longitude
         self.locations_data = None
         self.observations_data = None
         self.daily_forecasts_data = None
@@ -197,6 +200,47 @@ class Collector:
                     else:
                         self.observations_data["data"]["gust_speed_kilometre"] = "unavailable"
                         self.observations_data["data"]["gust_speed_knot"] = "unavailable"
+
+                    # Calculate Delta-T (temperature - dew point)
+                    temp = self.observations_data["data"].get("temp")
+                    dew_point = self.observations_data["data"].get("dew_point")
+                    if temp is not None and dew_point is not None:
+                        try:
+                            self.observations_data["data"]["delta_t"] = round(temp - dew_point, 1)
+                        except (TypeError, ValueError):
+                            self.observations_data["data"]["delta_t"] = None
+                    else:
+                        self.observations_data["data"]["delta_t"] = None
+
+                    # Convert wind direction degrees to compass text
+                    wind_dir = self.observations_data["data"].get("wind_direction")
+                    if wind_dir is not None and wind_dir != "unavailable":
+                        try:
+                            directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                                        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+                            index = round(wind_dir / 22.5) % 16
+                            self.observations_data["data"]["wind_direction_text"] = directions[index]
+                        except (TypeError, ValueError):
+                            self.observations_data["data"]["wind_direction_text"] = None
+                    else:
+                        self.observations_data["data"]["wind_direction_text"] = None
+
+                    # Calculate dew point using Magnus-Tetens formula
+                    temp = self.observations_data["data"].get("temp")
+                    humidity = self.observations_data["data"].get("humidity")
+                    if temp is not None and humidity is not None:
+                        try:
+                            # Magnus-Tetens approximation
+                            a = 17.27
+                            b = 237.7
+                            gamma = (a * temp / (b + temp)) + math.log(humidity / 100.0)
+                            dew_point = (b * gamma) / (a - gamma)
+                            self.observations_data["data"]["dew_point"] = round(dew_point, 1)
+                        except (TypeError, ValueError, ZeroDivisionError) as err:
+                            _LOGGER.debug(f"Error calculating dew point: {err}")
+                            self.observations_data["data"]["dew_point"] = None
+                    else:
+                        self.observations_data["data"]["dew_point"] = None
 
                 # Get daily forecast data
                 data = await self._fetch_with_retry(

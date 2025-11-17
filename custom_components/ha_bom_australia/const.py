@@ -78,6 +78,8 @@ ATTR_API_WIND_SPEED_KNOT: Final = "wind_speed_knot"
 ATTR_API_WIND_DIRECTION: Final = "wind_direction"
 ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
+ATTR_API_DELTA_T: Final = "delta_t"
+ATTR_API_WIND_DIRECTION_TEXT: Final = "wind_direction_text"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -165,6 +167,10 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Wind Direction",
     ),
     SensorEntityDescription(
+        key=ATTR_API_WIND_DIRECTION_TEXT,
+        name="Wind Direction Text",
+    ),
+    SensorEntityDescription(
         key=ATTR_API_GUST_SPEED_KILOMETRE,
         name="Gust Speed km/h",
         native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
@@ -181,6 +187,13 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="dew_point",
         name="Dew Point",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_DELTA_T,
+        name="Delta T",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
