@@ -147,9 +147,9 @@ Returns daily forecasts for the given geohash.
 
 ## Hourly Forecasts
 
-Returns hourly forecasts for the given geohash (3-hourly intervals).
+Returns hourly forecasts for the given geohash (provided in 3-hourly intervals).
 
-**Endpoint:** `https://api.weather.bom.gov.au/v1/locations/{geohash}/forecasts/3-hourly`
+**Endpoint:** `https://api.weather.bom.gov.au/v1/locations/{geohash}/forecasts/hourly`
 
 **Response (abbreviated):**
 ```json
