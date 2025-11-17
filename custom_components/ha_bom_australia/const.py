@@ -337,4 +337,5 @@ WARNING_TYPES: Final = {
     "hazardous_surf_warning": {"name": "Hazardous Surf Warning", "icon": "mdi:waves"},
     "heatwave_warning": {"name": "Heatwave Warning", "icon": "mdi:thermometer-alert"},
     "frost_warning": {"name": "Frost Warning", "icon": "mdi:snowflake-alert"},
+    "bushwalkers_alert": {"name": "Bushwalkers Alert", "icon": "mdi:hiking"},
 }
