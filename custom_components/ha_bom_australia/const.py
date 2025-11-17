@@ -338,4 +338,5 @@ WARNING_TYPES: Final = {
     "heatwave_warning": {"name": "Heatwave Warning", "icon": "mdi:thermometer-alert"},
     "frost_warning": {"name": "Frost Warning", "icon": "mdi:snowflake-alert"},
     "bushwalkers_alert": {"name": "Bushwalkers Alert", "icon": "mdi:hiking"},
+    "fire_weather_warning": {"name": "Fire Weather Warning", "icon": "mdi:fire-alert"},
 }
