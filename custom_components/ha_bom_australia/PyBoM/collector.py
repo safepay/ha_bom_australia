@@ -115,9 +115,17 @@ class Collector:
             flatten_dict(["rain", "uv", "astronomical"], d)
 
             if day == 0:
-                flatten_dict(["now"], d)
-
-                is_night = d.get("now_is_night")
+                # Extract 'now' fields with cleaner naming (BOM API has redundant prefixes/suffixes)
+                now_data = d.pop("now", {})
+                if now_data:
+                    # Extract with cleaner names (removing redundant now_ prefix from BOM API)
+                    d["now_label"] = now_data.get("now_label")
+                    d["temp_now"] = now_data.get("temp_now")
+                    d["later_label"] = now_data.get("later_label")
+                    d["temp_later"] = now_data.get("temp_later")
+                    is_night = now_data.get("is_night")
+                else:
+                    is_night = False
                 icon_desc = d.get("icon_descriptor")
 
                 # Override icon_descriptor if it's night and icon is sunny/mostly_sunny
