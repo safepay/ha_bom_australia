@@ -43,3 +43,10 @@ URL_DAILY = "/forecasts/daily"
 URL_HOURLY = "/forecasts/hourly"
 URL_OBSERVATIONS = "/observations"
 URL_WARNINGS = "/warnings"
+
+USER_AGENT = "MakeThisAPIOpenSource/1.0.0"
+
+WIND_DIRECTIONS = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+]

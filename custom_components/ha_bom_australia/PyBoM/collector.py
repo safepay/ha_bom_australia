@@ -1,16 +1,17 @@
 """BOM data 'collector' that downloads the observation data."""
+from __future__ import annotations
+
 import aiohttp
 import asyncio
-import datetime
-import time
 import logging
 import math
-
-from homeassistant.util import Throttle
+import time
+from typing import Any
 
 from .const import (
     MAP_MDI_ICON, URL_BASE, URL_DAILY,
-    URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS
+    URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS,
+    USER_AGENT, WIND_DIRECTIONS
 )
 from .helpers import (
     flatten_dict, geohash_encode,
@@ -26,7 +27,7 @@ MAX_CACHE_AGE = 86400  # 24 hours in seconds
 class Collector:
     """Collector for PyBoM."""
 
-    def __init__(self, latitude, longitude):
+    def __init__(self, latitude: float, longitude: float) -> None:
         """Init collector."""
         self.latitude = latitude
         self.longitude = longitude
@@ -46,7 +47,7 @@ class Collector:
             "warnings": {"data": None, "timestamp": 0},
         }
 
-    async def _fetch_with_retry(self, session, url, cache_key):
+    async def _fetch_with_retry(self, session: aiohttp.ClientSession, url: str, cache_key: str) -> dict[str, Any] | None:
         """Fetch data with retry mechanism and store in cache if successful."""
         for attempt in range(MAX_RETRIES):
             try:
@@ -86,10 +87,10 @@ class Collector:
                         _LOGGER.error(f"No cached {cache_key} data available")
                         return None
         return None
-    
-    async def get_locations_data(self):
+
+    async def get_locations_data(self) -> None:
         """Get JSON location name from BOM API endpoint."""
-        headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+        headers = {"User-Agent": USER_AGENT}
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
                 data = await self._fetch_with_retry(
@@ -100,7 +101,7 @@ class Collector:
         except Exception as err:
             _LOGGER.error(f"Unexpected error in get_locations_data: {err}")
 
-    async def format_daily_forecast_data(self):
+    async def format_daily_forecast_data(self) -> None:
         """Format forecast data."""
         if not self.daily_forecasts_data or "data" not in self.daily_forecasts_data:
             _LOGGER.warning("No daily forecast data to format")
@@ -136,7 +137,7 @@ class Collector:
                 d["rain_amount_range"] = f"{d['rain_amount_min']}–{d['rain_amount_max']}"
 
 
-    async def format_hourly_forecast_data(self):
+    async def format_hourly_forecast_data(self) -> None:
         """Format forecast data."""
         if not self.hourly_forecasts_data or "data" not in self.hourly_forecasts_data:
             _LOGGER.warning("No hourly forecast data to format")
@@ -168,10 +169,9 @@ class Collector:
             else:
                 d["rain_amount_range"] = f"{d['rain_amount_min']} to {d['rain_amount_max']}"
 
-    @Throttle(datetime.timedelta(minutes=5))
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Refresh the data on the collector object."""
-        headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+        headers = {"User-Agent": USER_AGENT}
         
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
@@ -216,10 +216,8 @@ class Collector:
                     wind_dir = self.observations_data["data"].get("wind_direction")
                     if wind_dir is not None and wind_dir != "unavailable":
                         try:
-                            directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                                        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
                             index = round(wind_dir / 22.5) % 16
-                            self.observations_data["data"]["wind_direction_text"] = directions[index]
+                            self.observations_data["data"]["wind_direction_text"] = WIND_DIRECTIONS[index]
                         except (TypeError, ValueError):
                             self.observations_data["data"]["wind_direction_text"] = None
                     else:

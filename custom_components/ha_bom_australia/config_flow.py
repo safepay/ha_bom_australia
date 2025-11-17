@@ -1,5 +1,8 @@
 """Config flow for BOM."""
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -46,7 +49,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.OptionsFlow:
         return BomOptionsFlow(config_entry)
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the initial step."""
         # Build schema with postcode option if pgeocode is available
         if PGEOCODE_AVAILABLE:
@@ -132,7 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_weather_name(self, user_input=None):
+    async def async_step_weather_name(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the entity prefix configuration step."""
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
@@ -187,7 +190,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_sensors_create(self, user_input=None):
+    async def async_step_sensors_create(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle sensor type selection step."""
         data_schema = vol.Schema(
             {
@@ -227,7 +230,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="sensors_create", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_observations_monitored(self, user_input=None):
+    async def async_step_observations_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the observations monitored step."""
         # Build schema with individual checkboxes for each sensor
         schema_dict = {}
@@ -266,7 +269,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="observations_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_forecasts_monitored(self, user_input=None):
+    async def async_step_forecasts_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the forecasts monitored step."""
         # Build schema with individual checkboxes for each forecast sensor
         schema_dict = {}
@@ -310,7 +313,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="forecasts_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_warnings_monitored(self, user_input=None):
+    async def async_step_warnings_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the warnings monitored step."""
         # Build schema with individual checkboxes for each warning type
         schema_dict = {}
@@ -352,7 +355,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         super().__init__()
         self.data = {}
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the initial step."""
         data_schema = vol.Schema(
             {
@@ -410,7 +413,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="init", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_weather_name(self, user_input=None):
+    async def async_step_weather_name(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the entity prefix configuration step."""
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
@@ -460,7 +463,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_sensors_create(self, user_input=None):
+    async def async_step_sensors_create(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the observations step."""
         data_schema = vol.Schema(
             {
@@ -519,7 +522,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="sensors_create", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_observations_monitored(self, user_input=None):
+    async def async_step_observations_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the observations monitored step."""
         # Get current selections
         current_selections = self.config_entry.options.get(
@@ -565,7 +568,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="observations_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_forecasts_monitored(self, user_input=None):
+    async def async_step_forecasts_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the forecasts monitored step."""
         # Get current selections
         current_selections = self.config_entry.options.get(
@@ -622,7 +625,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="forecasts_monitored", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_warnings_monitored(self, user_input=None):
+    async def async_step_warnings_monitored(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the warnings monitored step."""
         # Get current selections
         current_selections = self.config_entry.options.get(
