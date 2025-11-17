@@ -178,31 +178,6 @@ class WeatherBase(WeatherEntity):
         return self.collector.observations_data["data"].get("temp_feels_like")
 
     @property
-    def native_pressure(self) -> float | None:
-        """Return the pressure."""
-        return self.collector.observations_data["data"].get("pressure")
-
-    @property
-    def native_pressure_unit(self) -> str:
-        """Return the unit of measurement for pressure."""
-        return UnitOfPressure.HPA
-
-    @property
-    def native_visibility(self) -> float | None:
-        """Return the visibility."""
-        return self.collector.observations_data["data"].get("visibility_km")
-
-    @property
-    def native_visibility_unit(self) -> str:
-        """Return the unit of measurement for visibility."""
-        return UnitOfLength.KILOMETERS
-
-    @property
-    def cloud_coverage(self) -> int | None:
-        """Return the cloud coverage in oktas."""
-        return self.collector.observations_data["data"].get("cloud_oktas")
-
-    @property
     def native_dew_point(self) -> float | None:
         """Return the dew point."""
         return self.collector.observations_data["data"].get("dew_point")
