@@ -77,8 +77,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # If use_postcode is checked and postcode is provided, convert to lat/long
                 if PGEOCODE_AVAILABLE and use_postcode:
                     if postcode and postcode.strip():
-                        nomi = pgeocode.Nominatim('AU')
-                        location = nomi.query_postal_code(postcode.strip())
+                        # Run pgeocode in executor to avoid blocking the event loop
+                        def _lookup_postcode():
+                            nomi = pgeocode.Nominatim('AU')
+                            return nomi.query_postal_code(postcode.strip())
+
+                        location = await self.hass.async_add_executor_job(_lookup_postcode)
 
                         if location.latitude is None or location.longitude is None:
                             _LOGGER.debug(f"Invalid postcode: {postcode}")
