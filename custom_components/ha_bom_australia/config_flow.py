@@ -194,10 +194,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.data[CONF_OBSERVATIONS_MONITORED] = selected_sensors
 
                 # Move onto the next step of the config flow
-                if self.data[CONF_FORECASTS_CREATE]:
-                    return await self.async_step_forecasts_monitored()
-                elif self.data[CONF_WARNINGS_CREATE]:
+                # Warnings before forecasts
+                if self.data[CONF_WARNINGS_CREATE]:
                     return await self.async_step_warnings_monitored()
+                elif self.data[CONF_FORECASTS_CREATE]:
+                    return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -243,8 +244,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Convert integer to list of days (0 to forecast_days)
                 self.data[CONF_FORECASTS_DAYS] = list(range(0, forecast_days + 1))
 
-                if self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_monitored()
+                # Forecasts is the last step
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -276,6 +276,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 selected_warnings = [key for key, value in user_input.items() if value is True]
                 self.data[CONF_WARNINGS_MONITORED] = selected_warnings
 
+                # Forecasts come last
+                if self.data[CONF_FORECASTS_CREATE]:
+                    return await self.async_step_forecasts_monitored()
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -363,6 +366,12 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         location_name = self.collector.locations_data["data"]["name"]
         default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
+        # Build description with station information
+        description_placeholders = {
+            "location_name": location_name,
+            "default_prefix": default_prefix,
+        }
+
         data_schema = vol.Schema(
             {
                 vol.Required(
@@ -395,7 +404,10 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="weather_name", data_schema=data_schema, errors=errors
+            step_id="weather_name",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     async def async_step_sensors_create(self, user_input=None):
@@ -433,12 +445,13 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 self.data.update(user_input)
 
                 # Move onto the next step of the config flow
+                # Order: observations → warnings → forecasts (last)
                 if self.data[CONF_OBSERVATIONS_CREATE]:
                     return await self.async_step_observations_monitored()
-                elif self.data[CONF_FORECASTS_CREATE]:
-                    return await self.async_step_forecasts_monitored()
                 elif self.data[CONF_WARNINGS_CREATE]:
                     return await self.async_step_warnings_monitored()
+                elif self.data[CONF_FORECASTS_CREATE]:
+                    return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -480,10 +493,11 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 self.data[CONF_OBSERVATIONS_MONITORED] = selected_sensors
 
                 # Move onto the next step of the config flow
-                if self.data[CONF_FORECASTS_CREATE]:
-                    return await self.async_step_forecasts_monitored()
-                elif self.data[CONF_WARNINGS_CREATE]:
+                # Warnings before forecasts
+                if self.data[CONF_WARNINGS_CREATE]:
                     return await self.async_step_warnings_monitored()
+                elif self.data[CONF_FORECASTS_CREATE]:
+                    return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
                         title=self.collector.locations_data["data"]["name"],
@@ -542,8 +556,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 # Convert integer to list of days (0 to forecast_days)
                 self.data[CONF_FORECASTS_DAYS] = list(range(0, forecast_days + 1))
 
-                if self.data[CONF_WARNINGS_CREATE]:
-                    return await self.async_step_warnings_monitored()
+                # Forecasts is the last step
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
@@ -582,6 +595,9 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 selected_warnings = [key for key, value in user_input.items() if value is True]
                 self.data[CONF_WARNINGS_MONITORED] = selected_warnings
 
+                # Forecasts come last
+                if self.data[CONF_FORECASTS_CREATE]:
+                    return await self.async_step_forecasts_monitored()
                 return self.async_create_entry(
                     title=self.collector.locations_data["data"]["name"], data=self.data
                 )
