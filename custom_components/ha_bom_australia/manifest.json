@@ -1,6 +1,6 @@
 {
   "domain": "ha_bom_australia",
-  "name": "BOM Australia",
+  "name": "BoM Australia",
   "integration_type": "service",
   "config_flow": true,
   "documentation": "https://github.com/safepay/ha_bom_australia",
