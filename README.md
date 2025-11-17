@@ -107,75 +107,16 @@ logger:
 
 This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to avoid conflicts with existing integrations.
 
-**Key differences from the original:**
-- Uses directory name `ha_bom_australia` instead of `bureau_of_meteorology`
-- All entities prefixed with "BOM" and unique IDs prefixed with "bom_"
-- Consolidated weather entity with both daily and hourly forecasts
-- Binary sensor platform for individual warning types
+**Major improvements from the original:**
+- Comprehensive weather entity with all standard Home Assistant properties (apparent temperature, pressure, visibility, cloud coverage, dew point, wind gust, UV index)
+- Individual binary sensors for each warning type with phase-based filtering
+- Streamlined config flow with visible checkboxes and human-readable labels
+- Simplified entity naming with single prefix for all entities
 - Can be installed alongside the original Bureau of Meteorology integration
 
-## Release Notes
+## Credits
 
-### 1.2.2 - Weather Entity Enhancements
 
-**Improvements:**
-- Added comprehensive weather entity properties:
-  - `native_apparent_temperature` - Feels like temperature
-  - `native_wind_gust_speed` - Wind gust speed
-  - `native_pressure` - Atmospheric pressure (hPa)
-  - `native_visibility` - Visibility (km)
-  - `cloud_coverage` - Cloud coverage in oktas
-  - `native_dew_point` - Dew point temperature
-  - `uv_index` - UV index from daily forecast
-- All standard weather attributes now properly exposed for Home Assistant UI
-- Cleaned up redundant attributes from extra_state_attributes
-
-### 1.2.1 - Config Flow Polish
-
-**Improvements:**
-- Added human-readable labels for all sensors, warnings, and forecasts in config flow
-- Reordered configuration steps: observations → warnings → forecasts (last)
-- All checkboxes now default to checked/selected
-- Improved descriptions for all configuration steps
-- Updated both initial setup and reconfiguration (options) flows for consistency
-
-### 1.2.0 - Major Config Flow Improvements
-
-**Improvements:**
-- Simplified entity prefix configuration (applies to ALL entities, not just weather)
-- Fixed entity naming to prevent double prefix (e.g., bom_bom_melbourne)
-- Changed all sensor selections from dropdowns to visible checkboxes
-- Forecast days changed to single numeric input (0-7) with default of 5
-- Improved wording throughout config flow
-- Location name now auto-retrieved from BOM API
-
-### 1.1.0 - Warning Sensor Improvements
-
-**Improvements:**
-- Enhanced warning binary sensors with individual attributes (ID, title, warning_group_type, phase, issue_time, expiry_time)
-- Added phase-based filtering (warnings with cancelled/expired phases won't trigger sensors)
-- Removed list-based attributes for cleaner UI
-- Added HACS version support
-
-### 1.0.0 - Initial Release (Refactored Fork)
-
-**New Features:**
-- **Comprehensive Weather Entity**: Single weather entity combining both daily and hourly forecasts with extensive attributes including UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
-- **Binary Sensor Warnings Platform**: Individual binary sensors for each warning type (flood, severe thunderstorm, severe weather, fire, tropical cyclone, storm, wind, sheep graziers, heat, tsunami, marine) with on/off states, severity information, and detailed warning data
-- **Improved Station Discovery**: Automatic detection of nearest BOM weather station based on coordinates with enhanced station information display during configuration
-- **Organized Entity Types**: Clear separation into three categories:
-  1. Weather entity (comprehensive forecasts)
-  2. Binary sensors (warnings)
-  3. Sensors (observations and forecast data points)
-
-**Technical Details:**
-- Domain: `ha_bom_australia`
-- Entity prefix: `bom_`
-- Compatible with Home Assistant 2023.9.0+
-- Data refresh: Every 5 minutes (minimum)
-- Supports both daily (7-day) and hourly forecasts
-
-**Credits:**
 - Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
 
 [hacs]: https://hacs.xyz
