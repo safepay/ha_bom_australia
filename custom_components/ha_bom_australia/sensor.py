@@ -31,7 +31,6 @@ from .const import (
     CONF_FORECASTS_MONITORED,
     CONF_OBSERVATIONS_CREATE,
     CONF_OBSERVATIONS_MONITORED,
-    CONF_WARNINGS_CREATE,
     CONF_WEATHER_NAME,
     COORDINATOR,
     DOMAIN,
@@ -153,18 +152,14 @@ async def async_setup_entry(
                         )
                     )
 
-    # Create catch-all warnings sensor if warnings are enabled
-    create_warnings = config_entry.options.get(
-        CONF_WARNINGS_CREATE, config_entry.data.get(CONF_WARNINGS_CREATE)
-    )
-    if create_warnings is True:
-        new_entities.append(
-            WarningsSensor(
-                hass_data,
-                location_name,
-                entity_prefix,
-            )
+    # Always create catch-all warnings sensor (shows all warnings, even unknown types)
+    new_entities.append(
+        WarningsSensor(
+            hass_data,
+            location_name,
+            entity_prefix,
         )
+    )
 
     # Note: Individual warning binary sensors are handled by binary_sensor platform
     # See binary_sensor.py for warning binary sensor implementation
