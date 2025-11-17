@@ -70,7 +70,8 @@
           "hazardous_surf_warning": "Hazardous Surf Warning",
           "heatwave_warning": "Heatwave Warning",
           "frost_warning": "Frost Warning",
-          "bushwalkers_alert": "Bushwalkers Alert"
+          "bushwalkers_alert": "Bushwalkers Alert",
+          "fire_weather_warning": "Fire Weather Warning"
         }
       },
       "forecasts_monitored": {
@@ -173,7 +174,8 @@
           "hazardous_surf_warning": "Hazardous Surf Warning",
           "heatwave_warning": "Heatwave Warning",
           "frost_warning": "Frost Warning",
-          "bushwalkers_alert": "Bushwalkers Alert"
+          "bushwalkers_alert": "Bushwalkers Alert",
+          "fire_weather_warning": "Fire Weather Warning"
         }
       },
       "forecasts_monitored": {
