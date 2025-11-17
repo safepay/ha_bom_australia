@@ -5,12 +5,12 @@
   "config_flow": true,
   "documentation": "https://github.com/safepay/ha_bom_australia",
   "issue_tracker": "https://github.com/safepay/ha_bom_australia/issues",
-  "requirements": ["iso8601", "pgeocode", "astral"],
+  "requirements": ["iso8601", "pgeocode"],
   "icon": "mdi:weather-partly-cloudy",
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "version": "1.4.1",
+  "version": "1.4.2",
   "codeowners": ["@safepay"]
 }

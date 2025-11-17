@@ -220,28 +220,6 @@ class ObservationSensor(SensorBase):
         return self.coordinator.data.get(self.entity_description.key)
 
     @property
-    def icon(self) -> str | None:
-        """Return the icon for the sensor."""
-        if self.sensor_name == "moon_phase":
-            phase = self.native_value
-            if phase:
-                phase_lower = phase.lower()
-                phase_map = {
-                    "new moon": "mdi:moon-new",
-                    "waxing crescent": "mdi:moon-waxing-crescent",
-                    "first quarter": "mdi:moon-first-quarter",
-                    "waxing gibbous": "mdi:moon-waxing-gibbous",
-                    "full moon": "mdi:moon-full",
-                    "waning gibbous": "mdi:moon-waning-gibbous",
-                    "last quarter": "mdi:moon-last-quarter",
-                    "third quarter": "mdi:moon-last-quarter",
-                    "waning crescent": "mdi:moon-waning-crescent",
-                }
-                return phase_map.get(phase_lower, "mdi:moon-full")
-            return "mdi:moon-full"
-        return super().icon
-
-    @property
     def extra_state_attributes(self):
         """Return the state attributes of the sensor."""
         attr = {}
