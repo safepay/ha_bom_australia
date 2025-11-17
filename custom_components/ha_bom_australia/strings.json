@@ -84,6 +84,7 @@
           "uv_max_index": "UV Max Index",
           "uv_start_time": "UV Protection Start Time",
           "uv_end_time": "UV Protection End Time",
+          "uv_forecast": "UV Forecast Summary",
           "rain_amount_min": "Rain Amount (Minimum)",
           "rain_amount_max": "Rain Amount (Maximum)",
           "rain_amount_range": "Rain Amount Range",
@@ -93,6 +94,8 @@
           "now_temp_now": "Now Temperature",
           "now_later_label": "Later Label",
           "now_temp_later": "Later Temperature",
+          "astronomical_sunrise_time": "Sunrise Time",
+          "astronomical_sunset_time": "Sunset Time",
           "forecasts_days": "Number of Forecast Days (0-7)"
         }
       }
@@ -181,6 +184,7 @@
           "uv_max_index": "UV Max Index",
           "uv_start_time": "UV Protection Start Time",
           "uv_end_time": "UV Protection End Time",
+          "uv_forecast": "UV Forecast Summary",
           "rain_amount_min": "Rain Amount (Minimum)",
           "rain_amount_max": "Rain Amount (Maximum)",
           "rain_amount_range": "Rain Amount Range",
@@ -190,6 +194,8 @@
           "now_temp_now": "Now Temperature",
           "now_later_label": "Later Label",
           "now_temp_later": "Later Temperature",
+          "astronomical_sunrise_time": "Sunrise Time",
+          "astronomical_sunset_time": "Sunset Time",
           "forecasts_days": "Number of Forecast Days (0-7)"
         }
       }
