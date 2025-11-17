@@ -60,17 +60,14 @@
         "title": "Warning Sensors",
         "description": "Choose which warning types you would like to monitor. Each selected warning will create a binary sensor that turns on when an active warning is issued.",
         "data": {
-          "flood": "Flood Warning",
-          "severe_thunderstorm": "Severe Thunderstorm Warning",
-          "severe_weather": "Severe Weather Warning",
-          "fire": "Fire Weather Warning",
-          "tropical_cyclone": "Tropical Cyclone Warning",
-          "storm": "Storm Warning",
-          "wind": "Wind Warning",
-          "sheep_graziers": "Sheep Graziers Warning",
-          "heat": "Heat Warning",
-          "tsunami": "Tsunami Warning",
-          "marine": "Marine Warning"
+          "flood_watch": "Flood Watch",
+          "flood_warning": "Flood Warning",
+          "sheep_graziers_warning": "Sheep Graziers Warning",
+          "severe_thunderstorm_warning": "Severe Thunderstorm Warning",
+          "severe_weather_warning": "Severe Weather Warning",
+          "marine_wind_warning": "Marine Wind Warning",
+          "hazardous_surf_warning": "Hazardous Surf Warning",
+          "heatwave_warning": "Heatwave Warning"
         }
       },
       "forecasts_monitored": {
@@ -160,17 +157,14 @@
         "title": "Warning Sensors",
         "description": "Choose which warning types you would like to monitor. Each selected warning will create a binary sensor that turns on when an active warning is issued.",
         "data": {
-          "flood": "Flood Warning",
-          "severe_thunderstorm": "Severe Thunderstorm Warning",
-          "severe_weather": "Severe Weather Warning",
-          "fire": "Fire Weather Warning",
-          "tropical_cyclone": "Tropical Cyclone Warning",
-          "storm": "Storm Warning",
-          "wind": "Wind Warning",
-          "sheep_graziers": "Sheep Graziers Warning",
-          "heat": "Heat Warning",
-          "tsunami": "Tsunami Warning",
-          "marine": "Marine Warning"
+          "flood_watch": "Flood Watch",
+          "flood_warning": "Flood Warning",
+          "sheep_graziers_warning": "Sheep Graziers Warning",
+          "severe_thunderstorm_warning": "Severe Thunderstorm Warning",
+          "severe_weather_warning": "Severe Weather Warning",
+          "marine_wind_warning": "Marine Wind Warning",
+          "hazardous_surf_warning": "Hazardous Surf Warning",
+          "heatwave_warning": "Heatwave Warning"
         }
       },
       "forecasts_monitored": {
