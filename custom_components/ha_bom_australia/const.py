@@ -302,17 +302,14 @@ WARNING_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
-# Warning type mappings for BOM warnings
+# Warning type mappings for BOM warnings (matching actual BOM API types)
 WARNING_TYPES: Final = {
-    "flood": {"name": "Flood Warning", "icon": "mdi:home-flood"},
-    "severe_thunderstorm": {"name": "Severe Thunderstorm Warning", "icon": "mdi:weather-lightning"},
-    "severe_weather": {"name": "Severe Weather Warning", "icon": "mdi:alert"},
-    "fire": {"name": "Fire Weather Warning", "icon": "mdi:fire"},
-    "tropical_cyclone": {"name": "Tropical Cyclone Warning", "icon": "mdi:weather-hurricane"},
-    "storm": {"name": "Storm Warning", "icon": "mdi:weather-lightning-rainy"},
-    "wind": {"name": "Wind Warning", "icon": "mdi:weather-windy"},
-    "sheep_graziers": {"name": "Sheep Graziers Warning", "icon": "mdi:sheep"},
-    "heat": {"name": "Heat Warning", "icon": "mdi:thermometer-alert"},
-    "tsunami": {"name": "Tsunami Warning", "icon": "mdi:waves"},
-    "marine": {"name": "Marine Warning", "icon": "mdi:ferry"},
+    "flood_watch": {"name": "Flood Watch", "icon": "mdi:home-flood"},
+    "flood_warning": {"name": "Flood Warning", "icon": "mdi:home-flood"},
+    "sheep_graziers_warning": {"name": "Sheep Graziers Warning", "icon": "mdi:sheep"},
+    "severe_thunderstorm_warning": {"name": "Severe Thunderstorm Warning", "icon": "mdi:weather-lightning"},
+    "severe_weather_warning": {"name": "Severe Weather Warning", "icon": "mdi:alert"},
+    "marine_wind_warning": {"name": "Marine Wind Warning", "icon": "mdi:ferry"},
+    "hazardous_surf_warning": {"name": "Hazardous Surf Warning", "icon": "mdi:waves"},
+    "heatwave_warning": {"name": "Heatwave Warning", "icon": "mdi:thermometer-alert"},
 }

@@ -93,10 +93,10 @@ class BomWarningSensor(BinarySensorEntity):
         self._attr_device_class = BinarySensorDeviceClass.SAFETY
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{self.entity_prefix}_binary_warning_sensors")},
+            identifiers={(DOMAIN, f"{self.entity_prefix}_warnings")},
             manufacturer=SHORT_ATTRIBUTION,
             model=MODEL_NAME,
-            name=f"BOM {self.location_name} Binary Warning Sensors",
+            name=f"BOM {self.location_name} Warnings",
         )
 
     async def async_added_to_hass(self) -> None:
@@ -158,48 +158,31 @@ class BomWarningSensor(BinarySensorEntity):
             return False
 
     def _is_inactive_phase(self, phase: str) -> bool:
-        """Check if a warning phase is inactive."""
-        inactive_phases = [
-            "cancelled",
-            "cancel",
-            "final",
-            "completed",
-            "expired",
-            "finished",
-        ]
-        return phase in inactive_phases
+        """Check if a warning phase is inactive.
+
+        Only warnings with phase='cancelled' should be ignored.
+        BOM API phases: new, update, renewal, downgrade, upgrade, final, cancelled
+        """
+        return phase == "cancelled"
 
     def _matches_warning_type(self, warning_id: str, warning_title: str, warning_type_api: str) -> bool:
-        """Check if a warning matches this sensor's type."""
+        """Check if a warning matches this sensor's type.
+
+        BOM API warning types match our sensor types directly:
+        - flood_watch, flood_warning, sheep_graziers_warning, severe_thunderstorm_warning,
+          severe_weather_warning, marine_wind_warning, hazardous_surf_warning, heatwave_warning
+        """
         # Convert everything to lowercase for comparison
-        warning_id = warning_id.lower()
-        warning_title = warning_title.lower()
         warning_type_api = warning_type_api.lower()
         sensor_type = self.warning_type.lower()
 
-        # Direct type match
-        if sensor_type in warning_type_api:
+        # Direct type match (primary method)
+        if warning_type_api == sensor_type:
             return True
 
-        # Keyword matching based on warning type
-        keywords_map = {
-            "flood": ["flood"],
-            "severe_thunderstorm": ["severe thunderstorm", "thunderstorm"],
-            "severe_weather": ["severe weather"],
-            "fire": ["fire weather", "fire danger", "total fire ban"],
-            "tropical_cyclone": ["tropical cyclone", "cyclone"],
-            "storm": ["storm"],
-            "wind": ["wind", "strong wind", "damaging wind"],
-            "sheep_graziers": ["sheep graziers", "sheep"],
-            "heat": ["heatwave", "extreme heat", "heat"],
-            "tsunami": ["tsunami"],
-            "marine": ["marine", "coastal"],
-        }
-
-        keywords = keywords_map.get(sensor_type, [])
-        for keyword in keywords:
-            if keyword in warning_title or keyword in warning_id:
-                return True
+        # Fallback: check if sensor type is in warning type
+        if sensor_type in warning_type_api:
+            return True
 
         return False
 
