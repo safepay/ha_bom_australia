@@ -107,17 +107,20 @@ After you have installed the custom component (see above):
 2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
 3. Search for `BOM Australia`. (If you don't see it, try refreshing your browser page to reload the cache.)
 4. Enter your location:
-   - **Option 1**: Enter latitude and longitude coordinates
-   - **Option 2**: Enter an Australian postcode (e.g., 3000 for Melbourne) - requires `pgeocode` library
+   - **Default**: Latitude and longitude fields are pre-populated with your Home Assistant's location - just click through to use your current location
+   - **Alternative**: Check "Use Australian postcode instead?" and enter a postcode (e.g., 3000 for Melbourne) to set up sensors for a different location
 5. The integration will display the nearest weather station and observation station being used
 6. Configure which entities you want to create (weather, observations, forecasts, warnings)
 7. Click `Submit` to add the integration.
 
-### Postcode Support (Optional)
+### Postcode Support
 
-The integration supports Australian postcode lookup for easier configuration. The `pgeocode` library will be automatically installed when using HACS or manual installation. If postcode lookup fails, you can always fall back to latitude/longitude coordinates.
+The integration supports Australian postcode lookup for easier configuration. This is especially useful when:
+- Setting up sensors for multiple locations (e.g., Melbourne and Sydney)
+- You don't know the exact coordinates but know the postcode
+- You want to quickly add a location without looking up coordinates
 
-**Note**: On first use, `pgeocode` will download a small Australian postcode database from GeoNames.org. This requires internet access and may take a moment.
+**Note**: On first use, `pgeocode` will download a small Australian postcode database from GeoNames.org (~2MB, one-time). This requires internet access and may take a moment.
 
 ## Troubleshooting
 
