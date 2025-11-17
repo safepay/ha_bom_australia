@@ -312,4 +312,5 @@ WARNING_TYPES: Final = {
     "marine_wind_warning": {"name": "Marine Wind Warning", "icon": "mdi:ferry"},
     "hazardous_surf_warning": {"name": "Hazardous Surf Warning", "icon": "mdi:waves"},
     "heatwave_warning": {"name": "Heatwave Warning", "icon": "mdi:thermometer-alert"},
+    "total_fire_ban": {"name": "Total Fire Ban", "icon": "mdi:fire"},
 }
