@@ -106,10 +106,18 @@ After you have installed the custom component (see above):
 1. Goto the `Configuration` -> `Integrations` page.
 2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
 3. Search for `BOM Australia`. (If you don't see it, try refreshing your browser page to reload the cache.)
-4. Enter your latitude and longitude (the integration will automatically find the nearest BOM weather station)
+4. Enter your location:
+   - **Option 1**: Enter latitude and longitude coordinates
+   - **Option 2**: Enter an Australian postcode (e.g., 3000 for Melbourne) - requires `pgeocode` library
 5. The integration will display the nearest weather station and observation station being used
 6. Configure which entities you want to create (weather, observations, forecasts, warnings)
 7. Click `Submit` to add the integration.
+
+### Postcode Support (Optional)
+
+The integration supports Australian postcode lookup for easier configuration. The `pgeocode` library will be automatically installed when using HACS or manual installation. If postcode lookup fails, you can always fall back to latitude/longitude coordinates.
+
+**Note**: On first use, `pgeocode` will download a small Australian postcode database from GeoNames.org. This requires internet access and may take a moment.
 
 ## Troubleshooting
 

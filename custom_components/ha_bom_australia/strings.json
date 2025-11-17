@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "Set Up BOM Australia",
-        "description": "Enter your location coordinates to find the nearest Bureau of Meteorology weather station.",
+        "description": "Enter your location using either coordinates OR Australian postcode to find the nearest Bureau of Meteorology weather station.\n\nYou can provide:\n  • Latitude and Longitude, OR\n  • Australian Postcode (e.g., 3000 for Melbourne)",
         "data": {
-          "latitude": "Latitude",
-          "longitude": "Longitude"
+          "latitude": "Latitude (or leave blank if using postcode)",
+          "longitude": "Longitude (or leave blank if using postcode)",
+          "postcode": "Australian Postcode (optional, overrides lat/long)"
         }
       },
       "weather_name": {
@@ -202,7 +203,10 @@
   "error": {
     "bad_location": "Could not find weather data for this location",
     "cannot_connect": "Failed to connect to Bureau of Meteorology",
-    "unknown": "Unexpected error occurred"
+    "unknown": "Unexpected error occurred",
+    "invalid_postcode": "Invalid Australian postcode. Please check and try again.",
+    "missing_location": "Please provide either latitude/longitude OR a postcode",
+    "invalid_coords": "Invalid coordinates. Please check latitude and longitude values."
   },
   "abort": {
     "already_configured": "This location is already configured"

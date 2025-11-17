@@ -7,6 +7,12 @@ from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 
+try:
+    import pgeocode
+    PGEOCODE_AVAILABLE = True
+except ImportError:
+    PGEOCODE_AVAILABLE = False
+
 from .const import (
     CONF_ENTITY_PREFIX,
     CONF_FORECASTS_CREATE,
@@ -42,37 +48,74 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
-                vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
-            }
-        )
+        # Build schema with postcode option if pgeocode is available
+        if PGEOCODE_AVAILABLE:
+            data_schema = vol.Schema(
+                {
+                    vol.Optional(CONF_LATITUDE, default=self.hass.config.latitude): vol.Any(float, ""),
+                    vol.Optional(CONF_LONGITUDE, default=self.hass.config.longitude): vol.Any(float, ""),
+                    vol.Optional("postcode"): str,
+                }
+            )
+        else:
+            data_schema = vol.Schema(
+                {
+                    vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
+                    vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
+                }
+            )
 
         errors = {}
         if user_input is not None:
             try:
-                # Create the collector object with the given long. and lat.
-                self.collector = Collector(
-                    user_input[CONF_LATITUDE],
-                    user_input[CONF_LONGITUDE],
-                )
+                latitude = user_input.get(CONF_LATITUDE)
+                longitude = user_input.get(CONF_LONGITUDE)
+                postcode = user_input.get("postcode")
 
-                # Save the user input into self.data so it's retained
-                self.data = user_input
+                # If postcode is provided, convert to lat/long
+                if PGEOCODE_AVAILABLE and postcode:
+                    nomi = pgeocode.Nominatim('AU')
+                    location = nomi.query_postal_code(postcode)
 
-                # Check if location is valid
-                await self.collector.get_locations_data()
-                if self.collector.locations_data is None:
-                    _LOGGER.debug(f"Unsupported Lat/Lon")
-                    errors["base"] = "bad_location"
+                    if location.latitude is None or location.longitude is None:
+                        _LOGGER.debug(f"Invalid postcode: {postcode}")
+                        errors["base"] = "invalid_postcode"
+                    else:
+                        latitude = float(location.latitude)
+                        longitude = float(location.longitude)
+                        _LOGGER.info(f"Postcode {postcode} resolved to: {latitude}, {longitude}")
+
+                # Validate we have coordinates
+                if not errors and (latitude == "" or longitude == "" or latitude is None or longitude is None):
+                    errors["base"] = "missing_location"
                 else:
-                    # Populate observations and daily forecasts data
-                    await self.collector.async_update()
+                    # Create the collector object with the given long. and lat.
+                    self.collector = Collector(
+                        float(latitude),
+                        float(longitude),
+                    )
 
-                    # Move onto the next step of the config flow
-                    return await self.async_step_weather_name()
+                    # Save the coordinates to data
+                    self.data = {
+                        CONF_LATITUDE: float(latitude),
+                        CONF_LONGITUDE: float(longitude),
+                    }
 
+                    # Check if location is valid
+                    await self.collector.get_locations_data()
+                    if self.collector.locations_data is None:
+                        _LOGGER.debug(f"Unsupported Lat/Lon")
+                        errors["base"] = "bad_location"
+                    else:
+                        # Populate observations and daily forecasts data
+                        await self.collector.async_update()
+
+                        # Move onto the next step of the config flow
+                        return await self.async_step_weather_name()
+
+            except ValueError:
+                _LOGGER.exception("Invalid coordinates")
+                errors["base"] = "invalid_coords"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
