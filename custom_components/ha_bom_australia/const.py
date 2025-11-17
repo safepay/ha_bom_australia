@@ -202,12 +202,14 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Forecast Maximum Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        icon="mdi:thermometer-high",
     ),
     SensorEntityDescription(
         key=ATTR_API_TEMP_MIN,
         name="Forecast Minimum Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        icon="mdi:thermometer-low",
     ),
     SensorEntityDescription(
         key=ATTR_API_EXTENDED_TEXT,
@@ -239,11 +241,13 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         key=ATTR_API_UV_START_TIME,
         name="UV Protection Start Time",
         device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:clock-start",
     ),
     SensorEntityDescription(
         key=ATTR_API_UV_END_TIME,
         name="UV Protection End Time",
         device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:clock-end",
     ),
     SensorEntityDescription(
         key=ATTR_API_UV_FORECAST,
@@ -288,6 +292,7 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Now Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        icon="mdi:thermometer",
     ),
     SensorEntityDescription(
         key=ATTR_API_NOW_LATER_LABEL,
@@ -298,6 +303,7 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Later Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        icon="mdi:thermometer",
     ),
     SensorEntityDescription(
         key=ATTR_API_ASTRONOMICAL_SUNRISE_TIME,
