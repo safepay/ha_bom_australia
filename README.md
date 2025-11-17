@@ -1,6 +1,6 @@
 # Bureau of Meteorology Custom Component
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE.md)
 ![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
@@ -9,9 +9,26 @@
 
 This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http://www.bom.gov.au) as a source for weather information.
 
-## Installation (There are two methods, with HACS or manual)
+## Installation
 
-Install via HACS (default store) or install manually by copying the files in a new 'custom_components/ha_bom_australia' directory.
+**Note:** This is NOT a HACS default integration. You must add it as a custom repository.
+
+### Method 1: HACS (Recommended)
+
+1. Open HACS in your Home Assistant instance
+2. Click on the three dots in the top right corner
+3. Select "Custom repositories"
+4. Add the repository URL: `https://github.com/safepay/ha_bom_australia`
+5. Select category: `Integration`
+6. Click "Add"
+7. Click "Install" on the BOM Australia card
+8. Restart Home Assistant
+
+### Method 2: Manual Installation
+
+1. Download the latest release from [GitHub releases](https://github.com/safepay/ha_bom_australia/releases)
+2. Copy the `custom_components/ha_bom_australia` directory to your Home Assistant's `custom_components` directory
+3. Restart Home Assistant
 
 **Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`bom_`) to avoid conflicts with the original Bureau of Meteorology integration.
 
@@ -21,10 +38,16 @@ This integration provides three types of entities to organize your weather data:
 
 ### 1. Weather Entity
 A comprehensive weather entity that combines both daily and hourly forecasts in a single view, including:
-- Current conditions (temperature, humidity, wind)
+- Current conditions (temperature, humidity, wind speed, wind gust, wind bearing)
+- Apparent temperature (feels like)
+- Pressure (hPa)
+- Visibility (km)
+- Cloud coverage (oktas)
+- Dew point
+- UV index
 - 7-day daily forecasts
 - Hourly forecasts
-- Additional attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, station information
+- Additional attributes: sunrise/sunset, fire danger, station information, warning count
 
 ### 2. Binary Sensors (Warnings)
 Individual binary sensors for different warning types:
@@ -93,6 +116,47 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 
 ## Release Notes
 
+### 1.2.2 - Weather Entity Enhancements
+
+**Improvements:**
+- Added comprehensive weather entity properties:
+  - `native_apparent_temperature` - Feels like temperature
+  - `native_wind_gust_speed` - Wind gust speed
+  - `native_pressure` - Atmospheric pressure (hPa)
+  - `native_visibility` - Visibility (km)
+  - `cloud_coverage` - Cloud coverage in oktas
+  - `native_dew_point` - Dew point temperature
+  - `uv_index` - UV index from daily forecast
+- All standard weather attributes now properly exposed for Home Assistant UI
+- Cleaned up redundant attributes from extra_state_attributes
+
+### 1.2.1 - Config Flow Polish
+
+**Improvements:**
+- Added human-readable labels for all sensors, warnings, and forecasts in config flow
+- Reordered configuration steps: observations → warnings → forecasts (last)
+- All checkboxes now default to checked/selected
+- Improved descriptions for all configuration steps
+- Updated both initial setup and reconfiguration (options) flows for consistency
+
+### 1.2.0 - Major Config Flow Improvements
+
+**Improvements:**
+- Simplified entity prefix configuration (applies to ALL entities, not just weather)
+- Fixed entity naming to prevent double prefix (e.g., bom_bom_melbourne)
+- Changed all sensor selections from dropdowns to visible checkboxes
+- Forecast days changed to single numeric input (0-7) with default of 5
+- Improved wording throughout config flow
+- Location name now auto-retrieved from BOM API
+
+### 1.1.0 - Warning Sensor Improvements
+
+**Improvements:**
+- Enhanced warning binary sensors with individual attributes (ID, title, warning_group_type, phase, issue_time, expiry_time)
+- Added phase-based filtering (warnings with cancelled/expired phases won't trigger sensors)
+- Removed list-based attributes for cleaner UI
+- Added HACS version support
+
 ### 1.0.0 - Initial Release (Refactored Fork)
 
 **New Features:**
@@ -115,7 +179,7 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 - Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
 
 [hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg?style=for-the-badge
 [releases]: https://github.com/safepay/ha_bom_australia/releases
