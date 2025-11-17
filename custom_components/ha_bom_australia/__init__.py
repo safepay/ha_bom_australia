@@ -138,10 +138,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for day in forecast_days:
             for forecast in entry.options.get(CONF_FORECASTS_MONITORED, []):
                 if forecast in [
-                    "now_now_label",
-                    "now_temp_now",
-                    "now_later_label",
-                    "now_temp_later",
+                    "now_label",
+                    "temp_now",
+                    "later_label",
+                    "temp_later",
                 ]:
                     if day == 0:
                         entities_to_keep.append(
