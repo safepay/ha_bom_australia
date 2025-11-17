@@ -1,6 +1,6 @@
 # Bureau of Meteorology Custom Component
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE.md)
 ![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
@@ -9,9 +9,26 @@
 
 This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http://www.bom.gov.au) as a source for weather information.
 
-## Installation (There are two methods, with HACS or manual)
+## Installation
 
-Install via HACS (default store) or install manually by copying the files in a new 'custom_components/ha_bom_australia' directory.
+**Note:** This is NOT a HACS default integration. You must add it as a custom repository.
+
+### Method 1: HACS (Recommended)
+
+1. Open HACS in your Home Assistant instance
+2. Click on the three dots in the top right corner
+3. Select "Custom repositories"
+4. Add the repository URL: `https://github.com/safepay/ha_bom_australia`
+5. Select category: `Integration`
+6. Click "Add"
+7. Click "Install" on the BOM Australia card
+8. Restart Home Assistant
+
+### Method 2: Manual Installation
+
+1. Download the latest release from [GitHub releases](https://github.com/safepay/ha_bom_australia/releases)
+2. Copy the `custom_components/ha_bom_australia` directory to your Home Assistant's `custom_components` directory
+3. Restart Home Assistant
 
 **Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`bom_`) to avoid conflicts with the original Bureau of Meteorology integration.
 
@@ -21,10 +38,16 @@ This integration provides three types of entities to organize your weather data:
 
 ### 1. Weather Entity
 A comprehensive weather entity that combines both daily and hourly forecasts in a single view, including:
-- Current conditions (temperature, humidity, wind)
+- Current conditions (temperature, humidity, wind speed, wind gust, wind bearing)
+- Apparent temperature (feels like)
+- Pressure (hPa)
+- Visibility (km)
+- Cloud coverage (oktas)
+- Dew point
+- UV index
 - 7-day daily forecasts
 - Hourly forecasts
-- Additional attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, station information
+- Additional attributes: sunrise/sunset, fire danger, station information, warning count
 
 ### 2. Binary Sensors (Warnings)
 Individual binary sensors for different warning types:
@@ -52,6 +75,30 @@ Regular sensors for:
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
 
+## Breaking Changes
+
+**Important:** If upgrading from an earlier version, please note:
+
+1. **Warning Sensors**: Warning sensors have been completely redesigned:
+   - **Old**: Single `sensor.bom_warnings` with list of warnings in attributes
+   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.{prefix}_warning_flood`)
+   - Old warning sensors will need to be removed manually from your configuration
+
+2. **Forecast Sensors**: Configuration has changed:
+   - **Old**: Multi-select dropdown for forecast days
+   - **New**: Single numeric input (0-7 days)
+   - Existing forecast sensors will be recreated with the new configuration
+
+3. **Device Organization**: Entities are now organized into separate devices:
+   - `BOM {location}` - Weather entity
+   - `BOM {location} Sensors` - Observation sensors
+   - `BOM {location} Forecast Sensors` - Forecast sensors
+   - `BOM {location} Warnings` - Warning binary sensors
+
+**Note on Entity Naming**: The entity prefix is fully configurable during setup (defaults to `bom_{location}` but you can set it to match your existing setup). If you configure the same prefix as your previous installation, most entities will maintain their existing IDs.
+
+**Recommendation**: For cleanest upgrade, remove the old integration completely before installing the new version, then reconfigure from scratch.
+
 ## Configuration
 
 After you have installed the custom component (see above):
@@ -59,10 +106,18 @@ After you have installed the custom component (see above):
 1. Goto the `Configuration` -> `Integrations` page.
 2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
 3. Search for `BOM Australia`. (If you don't see it, try refreshing your browser page to reload the cache.)
-4. Enter your latitude and longitude (the integration will automatically find the nearest BOM weather station)
+4. Enter your location:
+   - **Option 1**: Enter latitude and longitude coordinates
+   - **Option 2**: Enter an Australian postcode (e.g., 3000 for Melbourne) - requires `pgeocode` library
 5. The integration will display the nearest weather station and observation station being used
 6. Configure which entities you want to create (weather, observations, forecasts, warnings)
 7. Click `Submit` to add the integration.
+
+### Postcode Support (Optional)
+
+The integration supports Australian postcode lookup for easier configuration. The `pgeocode` library will be automatically installed when using HACS or manual installation. If postcode lookup fails, you can always fall back to latitude/longitude coordinates.
+
+**Note**: On first use, `pgeocode` will download a small Australian postcode database from GeoNames.org. This requires internet access and may take a moment.
 
 ## Troubleshooting
 
@@ -84,38 +139,20 @@ logger:
 
 This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to avoid conflicts with existing integrations.
 
-**Key differences from the original:**
-- Uses directory name `ha_bom_australia` instead of `bureau_of_meteorology`
-- All entities prefixed with "BOM" and unique IDs prefixed with "bom_"
-- Consolidated weather entity with both daily and hourly forecasts
-- Binary sensor platform for individual warning types
+**Major improvements from the original:**
+- Comprehensive weather entity with all standard Home Assistant properties (apparent temperature, pressure, visibility, cloud coverage, dew point, wind gust, UV index)
+- Individual binary sensors for each warning type with phase-based filtering
+- Streamlined config flow with visible checkboxes and human-readable labels
+- Simplified entity naming with single prefix for all entities
 - Can be installed alongside the original Bureau of Meteorology integration
 
-## Release Notes
+## Credits
 
-### 1.0.0 - Initial Release (Refactored Fork)
 
-**New Features:**
-- **Comprehensive Weather Entity**: Single weather entity combining both daily and hourly forecasts with extensive attributes including UV index, sunrise/sunset, fire danger, feels like temperature, dew point, and station information
-- **Binary Sensor Warnings Platform**: Individual binary sensors for each warning type (flood, severe thunderstorm, severe weather, fire, tropical cyclone, storm, wind, sheep graziers, heat, tsunami, marine) with on/off states, severity information, and detailed warning data
-- **Improved Station Discovery**: Automatic detection of nearest BOM weather station based on coordinates with enhanced station information display during configuration
-- **Organized Entity Types**: Clear separation into three categories:
-  1. Weather entity (comprehensive forecasts)
-  2. Binary sensors (warnings)
-  3. Sensors (observations and forecast data points)
-
-**Technical Details:**
-- Domain: `ha_bom_australia`
-- Entity prefix: `bom_`
-- Compatible with Home Assistant 2023.9.0+
-- Data refresh: Every 5 minutes (minimum)
-- Supports both daily (7-day) and hourly forecasts
-
-**Credits:**
 - Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
 
 [hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg?style=for-the-badge
 [releases]: https://github.com/safepay/ha_bom_australia/releases

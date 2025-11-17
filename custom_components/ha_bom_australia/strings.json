@@ -2,115 +2,213 @@
   "config": {
     "step": {
       "user": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Set Up BOM Australia",
+        "description": "Enter your location using either coordinates OR Australian postcode to find the nearest Bureau of Meteorology weather station.\n\nYou can provide:\n  • Latitude and Longitude, OR\n  • Australian Postcode (e.g., 3000 for Melbourne)",
         "data": {
-          "latitude": "[%key:common::config_flow::data::latitude%]",
-          "longitude": "[%key:common::config_flow::data::longitude%]"
+          "latitude": "Latitude (or leave blank if using postcode)",
+          "longitude": "Longitude (or leave blank if using postcode)",
+          "postcode": "Australian Postcode (optional, overrides lat/long)"
         }
       },
       "weather_name": {
-        "title": "Weather Station Found",
-        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nCustomize your entity names and prefix below.\nExample with prefix '{default_prefix}': weather.{default_prefix}_weather",
+        "title": "Configure Entity Prefix",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix '{default_prefix}':\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
         "data": {
-          "weather_name": "Weather Entity Name",
-          "entity_prefix": "Entity Prefix (will be used for all entity IDs)"
+          "entity_prefix": "Entity Prefix (used for all BOM entities)"
         }
       },
       "sensors_create": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Select Sensor Types",
+        "description": "Choose which types of sensors you would like to create.",
         "data": {
-          "observations_create": "[%key:common::config_flow::data::observations_create%]",
-          "forecasts_create": "[%key:common::config_flow::data::forecasts_create%]",
-          "warnings_create": "[%key:common::config_flow::data::warnings_create%]"
+          "observations_create": "Create observational sensors?",
+          "warnings_create": "Create warning sensors?",
+          "forecasts_create": "Create forecast sensors?"
         }
       },
       "observations_monitored": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Observational Sensors",
+        "description": "Choose which observational sensors you would like to create.",
         "data": {
-          "observations_basename": "[%key:common::config_flow::data::observations_basename%]",
-          "observations_monitored": "[%key:common::config_flow::data::observations_monitored%]"
+          "temp": "Temperature",
+          "temp_feels_like": "Feels Like Temperature",
+          "rain_since_9am": "Rain Since 9am",
+          "humidity": "Humidity",
+          "wind_speed_kilometre": "Wind Speed",
+          "wind_speed_knot": "Wind Speed (Knots)",
+          "wind_direction": "Wind Direction",
+          "gust_speed_kilometre": "Gust Speed",
+          "gust_speed_knot": "Gust Speed (Knots)",
+          "dew_point": "Dew Point",
+          "pressure": "Pressure",
+          "pressure_qnh": "Pressure QNH",
+          "pressure_msl": "Pressure MSL",
+          "pressure_tend": "Pressure Tendency",
+          "cloud": "Cloud Cover",
+          "cloud_base_m": "Cloud Base (Meters)",
+          "cloud_oktas": "Cloud (Oktas)",
+          "cloud_type_id": "Cloud Type ID",
+          "cloud_type": "Cloud Type",
+          "visibility_km": "Visibility (km)",
+          "weather": "Weather Description",
+          "max_temp": "Maximum Temperature",
+          "min_temp": "Minimum Temperature"
+        }
+      },
+      "warnings_monitored": {
+        "title": "Warning Sensors",
+        "description": "Choose which warning types you would like to monitor. Each selected warning will create a binary sensor that turns on when an active warning is issued.",
+        "data": {
+          "flood": "Flood Warning",
+          "severe_thunderstorm": "Severe Thunderstorm Warning",
+          "severe_weather": "Severe Weather Warning",
+          "fire": "Fire Weather Warning",
+          "tropical_cyclone": "Tropical Cyclone Warning",
+          "storm": "Storm Warning",
+          "wind": "Wind Warning",
+          "sheep_graziers": "Sheep Graziers Warning",
+          "heat": "Heat Warning",
+          "tsunami": "Tsunami Warning",
+          "marine": "Marine Warning"
         }
       },
       "forecasts_monitored": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Forecast Sensors",
+        "description": "Choose which forecast sensors you would like to create and how many days of forecasts to generate (0-7).",
         "data": {
-          "forecasts_basename": "[%key:common::config_flow::data::forecasts_basename%]",
-          "forecasts_monitored": "[%key:common::config_flow::data::forecasts_monitored%]",
-          "forecasts_days": "[%key:common::config_flow::data::forecasts_days%]"
+          "temp_min": "Minimum Temperature",
+          "temp_max": "Maximum Temperature",
+          "extended_text": "Extended Forecast Text",
+          "icon_descriptor": "Icon Descriptor",
+          "mdi_icon": "MDI Icon",
+          "short_text": "Short Forecast Text",
+          "uv_category": "UV Category",
+          "uv_max_index": "UV Max Index",
+          "uv_start_time": "UV Protection Start Time",
+          "uv_end_time": "UV Protection End Time",
+          "rain_amount_min": "Rain Amount (Minimum)",
+          "rain_amount_max": "Rain Amount (Maximum)",
+          "rain_amount_range": "Rain Amount Range",
+          "rain_chance": "Chance of Rain",
+          "fire_danger": "Fire Danger",
+          "now_now_label": "Now Label",
+          "now_temp_now": "Now Temperature",
+          "now_later_label": "Later Label",
+          "now_temp_later": "Later Temperature",
+          "forecasts_days": "Number of Forecast Days (0-7)"
         }
-      }
-    },
-    "warnings_basename": {
-      "title": "[%key:common::config_flow::title%]",
-      "description": "[%key:common::config_flow::description%]",
-      "data": {
-        "warnings_basename": "[%key:common::config_flow::data::warnings_basename%]"
       }
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Reconfigure Location",
+        "description": "Update your location coordinates to find a different Bureau of Meteorology weather station.",
         "data": {
-          "latitude": "[%key:common::config_flow::data::latitude%]",
-          "longitude": "[%key:common::config_flow::data::longitude%]"
+          "latitude": "Latitude",
+          "longitude": "Longitude"
         }
       },
       "weather_name": {
-        "title": "Weather Station Found",
-        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nCustomize your entity names and prefix below.\nExample with prefix '{default_prefix}': weather.{default_prefix}_weather",
+        "title": "Configure Entity Prefix",
+        "description": "Nearest BOM location: {location_name}\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix '{default_prefix}':\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
         "data": {
-          "weather_name": "Weather Entity Name",
-          "entity_prefix": "Entity Prefix (will be used for all entity IDs)"
+          "entity_prefix": "Entity Prefix (used for all BOM entities)"
         }
       },
       "sensors_create": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Select Sensor Types",
+        "description": "Choose which types of sensors you would like to create.",
         "data": {
-          "observations_create": "[%key:common::config_flow::data::observations_create%]",
-          "forecasts_create": "[%key:common::config_flow::data::forecasts_create%]",
-          "warnings_create": "[%key:common::config_flow::data::warnings_create%]"
+          "observations_create": "Create observational sensors?",
+          "warnings_create": "Create warning sensors?",
+          "forecasts_create": "Create forecast sensors?"
         }
       },
       "observations_monitored": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Observational Sensors",
+        "description": "Choose which observational sensors you would like to create.",
         "data": {
-          "observations_basename": "[%key:common::config_flow::data::observations_basename%]",
-          "observations_monitored": "[%key:common::config_flow::data::observations_monitored%]"
+          "temp": "Temperature",
+          "temp_feels_like": "Feels Like Temperature",
+          "rain_since_9am": "Rain Since 9am",
+          "humidity": "Humidity",
+          "wind_speed_kilometre": "Wind Speed",
+          "wind_speed_knot": "Wind Speed (Knots)",
+          "wind_direction": "Wind Direction",
+          "gust_speed_kilometre": "Gust Speed",
+          "gust_speed_knot": "Gust Speed (Knots)",
+          "dew_point": "Dew Point",
+          "pressure": "Pressure",
+          "pressure_qnh": "Pressure QNH",
+          "pressure_msl": "Pressure MSL",
+          "pressure_tend": "Pressure Tendency",
+          "cloud": "Cloud Cover",
+          "cloud_base_m": "Cloud Base (Meters)",
+          "cloud_oktas": "Cloud (Oktas)",
+          "cloud_type_id": "Cloud Type ID",
+          "cloud_type": "Cloud Type",
+          "visibility_km": "Visibility (km)",
+          "weather": "Weather Description",
+          "max_temp": "Maximum Temperature",
+          "min_temp": "Minimum Temperature"
+        }
+      },
+      "warnings_monitored": {
+        "title": "Warning Sensors",
+        "description": "Choose which warning types you would like to monitor. Each selected warning will create a binary sensor that turns on when an active warning is issued.",
+        "data": {
+          "flood": "Flood Warning",
+          "severe_thunderstorm": "Severe Thunderstorm Warning",
+          "severe_weather": "Severe Weather Warning",
+          "fire": "Fire Weather Warning",
+          "tropical_cyclone": "Tropical Cyclone Warning",
+          "storm": "Storm Warning",
+          "wind": "Wind Warning",
+          "sheep_graziers": "Sheep Graziers Warning",
+          "heat": "Heat Warning",
+          "tsunami": "Tsunami Warning",
+          "marine": "Marine Warning"
         }
       },
       "forecasts_monitored": {
-        "title": "[%key:common::config_flow::title%]",
-        "description": "[%key:common::config_flow::description%]",
+        "title": "Forecast Sensors",
+        "description": "Choose which forecast sensors you would like to create and how many days of forecasts to generate (0-7).",
         "data": {
-          "forecasts_basename": "[%key:common::config_flow::data::forecasts_basename%]",
-          "forecasts_monitored": "[%key:common::config_flow::data::forecasts_monitored%]",
-          "forecasts_days": "[%key:common::config_flow::data::forecasts_days%]"
+          "temp_min": "Minimum Temperature",
+          "temp_max": "Maximum Temperature",
+          "extended_text": "Extended Forecast Text",
+          "icon_descriptor": "Icon Descriptor",
+          "mdi_icon": "MDI Icon",
+          "short_text": "Short Forecast Text",
+          "uv_category": "UV Category",
+          "uv_max_index": "UV Max Index",
+          "uv_start_time": "UV Protection Start Time",
+          "uv_end_time": "UV Protection End Time",
+          "rain_amount_min": "Rain Amount (Minimum)",
+          "rain_amount_max": "Rain Amount (Maximum)",
+          "rain_amount_range": "Rain Amount Range",
+          "rain_chance": "Chance of Rain",
+          "fire_danger": "Fire Danger",
+          "now_now_label": "Now Label",
+          "now_temp_now": "Now Temperature",
+          "now_later_label": "Later Label",
+          "now_temp_later": "Later Temperature",
+          "forecasts_days": "Number of Forecast Days (0-7)"
         }
-      }
-    },
-    "warnings_basename": {
-      "title": "[%key:common::config_flow::title%]",
-      "description": "[%key:common::config_flow::description%]",
-      "data": {
-        "warnings_basename": "[%key:common::config_flow::data::warnings_basename%]"
       }
     }
   },
   "error": {
-    "bad_location": "[%key:common::config_flow::error::bad_location%]",
-    "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-    "unknown": "[%key:common::config_flow::error::unknown%]"
+    "bad_location": "Could not find weather data for this location",
+    "cannot_connect": "Failed to connect to Bureau of Meteorology",
+    "unknown": "Unexpected error occurred",
+    "invalid_postcode": "Invalid Australian postcode. Please check and try again.",
+    "missing_location": "Please provide either latitude/longitude OR a postcode",
+    "invalid_coords": "Invalid coordinates. Please check latitude and longitude values."
   },
   "abort": {
-    "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    "already_configured": "This location is already configured"
   }
 }
