@@ -38,10 +38,10 @@ from .const import (
     MODEL_NAME,
     OBSERVATION_SENSOR_TYPES,
     FORECAST_SENSOR_TYPES,
-    ATTR_API_NOW_NOW_LABEL,
-    ATTR_API_NOW_TEMP_NOW,
-    ATTR_API_NOW_LATER_LABEL,
-    ATTR_API_NOW_TEMP_LATER,
+    ATTR_API_NOW_LABEL,
+    ATTR_API_TEMP_NOW,
+    ATTR_API_LATER_LABEL,
+    ATTR_API_TEMP_LATER,
 )
 from .PyBoM.collector import Collector
 
@@ -117,10 +117,10 @@ async def async_setup_entry(
         for day in forecast_days:
             for forecast in forecasts_monitored:
                 if forecast in [
-                    ATTR_API_NOW_NOW_LABEL,
-                    ATTR_API_NOW_TEMP_NOW,
-                    ATTR_API_NOW_LATER_LABEL,
-                    ATTR_API_NOW_TEMP_LATER,
+                    ATTR_API_NOW_LABEL,
+                    ATTR_API_TEMP_NOW,
+                    ATTR_API_LATER_LABEL,
+                    ATTR_API_TEMP_LATER,
                 ]:
                     if day == 0:
                         new_entities.append(

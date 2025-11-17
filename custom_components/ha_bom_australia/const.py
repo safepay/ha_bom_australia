@@ -96,10 +96,10 @@ ATTR_API_RAIN_AMOUNT_MAX: Final = "rain_amount_max"
 ATTR_API_RAIN_AMOUNT_RANGE: Final = "rain_amount_range"
 ATTR_API_RAIN_CHANCE: Final = "rain_chance"
 ATTR_API_FIRE_DANGER: Final = "fire_danger"
-ATTR_API_NOW_NOW_LABEL: Final = "now_now_label"
-ATTR_API_NOW_TEMP_NOW: Final = "now_temp_now"
-ATTR_API_NOW_LATER_LABEL: Final = "now_later_label"
-ATTR_API_NOW_TEMP_LATER: Final = "now_temp_later"
+ATTR_API_NOW_LABEL: Final = "now_label"
+ATTR_API_TEMP_NOW: Final = "temp_now"
+ATTR_API_LATER_LABEL: Final = "later_label"
+ATTR_API_TEMP_LATER: Final = "temp_later"
 ATTR_API_ASTRONOMICAL_SUNRISE_TIME: Final = "astronomical_sunrise_time"
 ATTR_API_ASTRONOMICAL_SUNSET_TIME: Final = "astronomical_sunset_time"
 ATTR_API_WARNINGS: Final = "warnings"
@@ -284,22 +284,22 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         icon="mdi:fire",
     ),
     SensorEntityDescription(
-        key=ATTR_API_NOW_NOW_LABEL,
+        key=ATTR_API_NOW_LABEL,
         name="Now Label",
     ),
     SensorEntityDescription(
-        key=ATTR_API_NOW_TEMP_NOW,
+        key=ATTR_API_TEMP_NOW,
         name="Now Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         icon="mdi:thermometer",
     ),
     SensorEntityDescription(
-        key=ATTR_API_NOW_LATER_LABEL,
+        key=ATTR_API_LATER_LABEL,
         name="Later Label",
     ),
     SensorEntityDescription(
-        key=ATTR_API_NOW_TEMP_LATER,
+        key=ATTR_API_TEMP_LATER,
         name="Later Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
