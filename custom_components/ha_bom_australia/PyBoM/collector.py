@@ -117,6 +117,16 @@ class Collector:
             if day == 0:
                 flatten_dict(["now"], d)
 
+                # Rename flattened 'now' fields to remove redundant 'now_' prefix
+                if "now_now_label" in d:
+                    d["now_label"] = d.pop("now_now_label")
+                if "now_temp_now" in d:
+                    d["temp_now"] = d.pop("now_temp_now")
+                if "now_later_label" in d:
+                    d["later_label"] = d.pop("now_later_label")
+                if "now_temp_later" in d:
+                    d["temp_later"] = d.pop("now_temp_later")
+
                 is_night = d.get("now_is_night")
                 icon_desc = d.get("icon_descriptor")
 
