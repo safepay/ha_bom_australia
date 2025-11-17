@@ -52,9 +52,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if PGEOCODE_AVAILABLE:
             data_schema = vol.Schema(
                 {
-                    vol.Optional(CONF_LATITUDE, default=self.hass.config.latitude): vol.Any(float, ""),
-                    vol.Optional(CONF_LONGITUDE, default=self.hass.config.longitude): vol.Any(float, ""),
-                    vol.Optional("postcode"): str,
+                    vol.Optional(CONF_LATITUDE): cv.string,
+                    vol.Optional(CONF_LONGITUDE): cv.string,
+                    vol.Optional("postcode"): cv.string,
                 }
             )
         else:
@@ -73,9 +73,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 postcode = user_input.get("postcode")
 
                 # If postcode is provided, convert to lat/long
-                if PGEOCODE_AVAILABLE and postcode:
+                if PGEOCODE_AVAILABLE and postcode and postcode.strip():
                     nomi = pgeocode.Nominatim('AU')
-                    location = nomi.query_postal_code(postcode)
+                    location = nomi.query_postal_code(postcode.strip())
 
                     if location.latitude is None or location.longitude is None:
                         _LOGGER.debug(f"Invalid postcode: {postcode}")
@@ -84,11 +84,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         latitude = float(location.latitude)
                         longitude = float(location.longitude)
                         _LOGGER.info(f"Postcode {postcode} resolved to: {latitude}, {longitude}")
-
-                # Validate we have coordinates
-                if not errors and (latitude == "" or longitude == "" or latitude is None or longitude is None):
-                    errors["base"] = "missing_location"
+                # Otherwise, try to use provided lat/long
+                elif latitude and longitude:
+                    try:
+                        latitude = float(latitude)
+                        longitude = float(longitude)
+                    except (ValueError, TypeError):
+                        errors["base"] = "invalid_coords"
                 else:
+                    errors["base"] = "missing_location"
+
+                # Proceed if we have valid coordinates and no errors
+                if not errors:
                     # Create the collector object with the given long. and lat.
                     self.collector = Collector(
                         float(latitude),
