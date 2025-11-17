@@ -40,10 +40,7 @@ This integration provides three types of entities to organize your weather data:
 A comprehensive weather entity that combines both daily and hourly forecasts in a single view, including:
 - Current conditions (temperature, humidity, wind speed, wind gust, wind bearing)
 - Apparent temperature (feels like)
-- Pressure (hPa)
-- Visibility (km)
-- Cloud coverage (oktas)
-- Dew point
+- Dew point (calculated)
 - UV index
 - 7-day daily forecasts
 - Hourly forecasts
@@ -142,7 +139,7 @@ logger:
 This is a refactored version of the original [Bureau of Meteorology integration](https://github.com/bremor/bureau_of_meteorology), reorganized to avoid conflicts with existing integrations.
 
 **Major improvements from the original:**
-- Comprehensive weather entity with all standard Home Assistant properties (apparent temperature, pressure, visibility, cloud coverage, dew point, wind gust, UV index)
+- Comprehensive weather entity with standard Home Assistant properties (temperature, humidity, wind speed/gust/bearing, apparent temperature, dew point, UV index)
 - Calculated observation sensors (dew point using Magnus-Tetens formula, delta-T for fire weather, wind direction text from degrees)
 - Individual binary sensors for each warning type using actual BOM API warning types with accurate phase-based filtering (only excludes cancelled warnings)
 - Australian postcode lookup for easier multi-location setup
