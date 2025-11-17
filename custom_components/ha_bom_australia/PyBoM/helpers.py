@@ -1,6 +1,10 @@
 """Helpers functions for PyBom."""
+from __future__ import annotations
 
-def flatten_dict(keys, dict):
+from typing import Any
+
+def flatten_dict(keys: list[str], dict: dict[str, Any]) -> dict[str, Any]:
+    """Flatten nested dictionary keys."""
     for key in keys:
         if dict[key] is not None:
             flatten = dict.pop(key)
@@ -8,7 +12,8 @@ def flatten_dict(keys, dict):
                 dict[key + "_" + inner_key] = value
     return dict
 
-def geohash_encode(latitude, longitude, precision=6):
+def geohash_encode(latitude: float, longitude: float, precision: int = 6) -> str:
+    """Encode latitude/longitude to geohash string."""
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
     lat_interval = (-90.0, 90.0)
     lon_interval = (-180.0, 180.0)

@@ -1,11 +1,14 @@
 """The BOM integration."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
+from typing import Any, Final
 
 from aiohttp.client_exceptions import ClientConnectorError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import debounce
 from homeassistant.helpers import device_registry as dr
@@ -34,16 +37,16 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["binary_sensor", "sensor", "weather"]
 
 DEFAULT_SCAN_INTERVAL = timedelta(minutes=5)
-DEBOUNCE_TIME = 60  # in seconds
+DEBOUNCE_TIME: Final[int] = 60  # in seconds
 
 
-async def async_setup(hass: HomeAssistant, config: dict):
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the BOM component."""
     hass.data.setdefault(DOMAIN, {})
     return True
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate old entry."""
     _LOGGER.debug("Migrating from version %s", config_entry.version)
 
@@ -87,12 +90,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle config entry updates."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove unconfigured entities and unload the config entry."""
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
@@ -196,12 +199,12 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     @callback
-    def entity_registry_updated(self, event):
+    def entity_registry_updated(self, event: Event) -> None:
         """Handle entity registry update events."""
         if event.data["action"] == "remove":
             self.remove_empty_devices()
 
-    def remove_empty_devices(self):
+    def remove_empty_devices(self) -> None:
         """Remove devices with no entities."""
         entity_registry = er.async_get(self.hass)
         device_registry = dr.async_get(self.hass)

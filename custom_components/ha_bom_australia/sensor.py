@@ -1,7 +1,9 @@
 """Platform for sensor integration."""
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Final
 
 import iso8601
 from homeassistant.config_entries import ConfigEntry
@@ -44,6 +46,8 @@ from .const import (
 from .PyBoM.collector import Collector
 
 _LOGGER = logging.getLogger(__name__)
+
+MAX_STATE_LENGTH: Final[int] = 251  # Maximum length for sensor state before truncation
 
 
 async def async_setup_entry(
@@ -194,7 +198,7 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
         """Entities do not individually poll."""
         return False
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Refresh the data on the collector object."""
         await self.collector.async_update()
 
@@ -207,17 +211,17 @@ class ObservationSensor(SensorBase):
         super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Sensors")
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return Unique ID string."""
         return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the state of the device."""
         return self.coordinator.data.get(self.entity_description.key)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         attr = {}
 
@@ -255,7 +259,7 @@ class ObservationSensor(SensorBase):
         return attr
 
     @property
-    def state(self):
+    def state(self) -> Any:
         """Return the state of the sensor."""
         if self.sensor_name in self.collector.observations_data["data"]:
             if self.collector.observations_data["data"][self.sensor_name] is not None:
@@ -263,11 +267,10 @@ class ObservationSensor(SensorBase):
                     return self.collector.observations_data["data"][self.sensor_name]["value"]
                 else:
                     return self.collector.observations_data["data"][self.sensor_name]
-        else:
-            return "unavailable"
+        return None
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
@@ -281,17 +284,17 @@ class ForecastSensor(SensorBase):
         super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return Unique ID string."""
         return f"{self.entity_prefix}_{self.day}_{self.sensor_name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the state of the device."""
         return self.coordinator.data.get(self.entity_description.key)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         attr = {}
 
@@ -305,7 +308,7 @@ class ForecastSensor(SensorBase):
                     attr[key] = self.collector.daily_forecasts_data["metadata"][key]
             attr[ATTR_ATTRIBUTION] = ATTRIBUTION
             attr[ATTR_DATE] = iso8601.parse_date(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
-            if (self.sensor_name == "fire_danger") and (self.current_state != None):
+            if (self.sensor_name == "fire_danger") and (self.current_state is not None):
                 if self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["default_colour"]:
                     attr["color_fill"] = self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["default_colour"]
                     attr["color_text"] =  "#ffffff" if (self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["text"] == "Catastrophic") else "#000000"
@@ -314,7 +317,7 @@ class ForecastSensor(SensorBase):
         return attr
 
     @property
-    def state(self):
+    def state(self) -> Any:
         """Return the state of the sensor."""
         # If there is no data for this day, return state as 'None'.
         if self.day < len(self.collector.daily_forecasts_data["data"]):
@@ -327,9 +330,9 @@ class ForecastSensor(SensorBase):
                 except iso8601.ParseError:
                     return self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
             if self.sensor_name == "uv_forecast":
-                if (self.collector.daily_forecasts_data["data"][self.day]["uv_category"] is None):
+                if self.collector.daily_forecasts_data["data"][self.day]["uv_category"] is None:
                     return None
-                if (self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"] is None):
+                if self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"] is None:
                     return (
                         f"Sun protection not required, UV Index predicted to reach "
                         f'{self.collector.daily_forecasts_data["data"][self.day]["uv_max_index"]} '
@@ -347,18 +350,18 @@ class ForecastSensor(SensorBase):
                         f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
                     )
             new_state = self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
-            if isinstance(new_state, str) and len(new_state) > 251:
-                self.current_state = new_state[:251] + "..."
+            if isinstance(new_state, str) and len(new_state) > MAX_STATE_LENGTH:
+                self.current_state = new_state[:MAX_STATE_LENGTH] + "..."
             else:
                 self.current_state = new_state
-            if (self.sensor_name == "uv_category") and (self.current_state != None):
+            if (self.sensor_name == "uv_category") and (self.current_state is not None):
                 self.current_state = self.current_state.replace("veryhigh", "very high").title()
             return self.current_state
         else:
             return None
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
 
@@ -371,24 +374,24 @@ class NowLaterSensor(SensorBase):
         super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return Unique ID string."""
         return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the state of the device."""
         return self.coordinator.data.get(self.entity_description.key)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         attr = self.collector.daily_forecasts_data["metadata"]
         attr[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attr
 
     @property
-    def state(self):
+    def state(self) -> Any:
         """Return the state of the sensor."""
         self.current_state = self.collector.daily_forecasts_data["data"][0][
             self.sensor_name
@@ -396,6 +399,6 @@ class NowLaterSensor(SensorBase):
         return self.current_state
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"

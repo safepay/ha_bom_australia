@@ -119,8 +119,8 @@ class WeatherBase(WeatherEntity):
 
     @property
     def supported_features(self) -> WeatherEntityFeature:
-      """Determine supported features based on available data sets reported by WeatherKit."""
-      return WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
+        """Determine supported features based on available data sets reported by BOM."""
+        return WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
 
     @callback
     def _update_callback(self) -> None:
@@ -133,82 +133,82 @@ class WeatherBase(WeatherEntity):
         return False
 
     @property
-    def native_temperature(self):
+    def native_temperature(self) -> float | None:
         """Return the platform temperature."""
         return self.collector.observations_data["data"]["temp"]
 
     @property
-    def icon(self):
+    def icon(self) -> str | None:
         """Return the icon."""
         return self.collector.daily_forecasts_data["data"][0]["mdi_icon"]
 
     @property
-    def native_temperature_unit(self):
+    def native_temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return UnitOfTemperature.CELSIUS
 
     @property
-    def humidity(self):
+    def humidity(self) -> float | None:
         """Return the humidity."""
         return self.collector.observations_data["data"]["humidity"]
 
     @property
-    def native_wind_speed(self):
+    def native_wind_speed(self) -> float | None:
         """Return the wind speed."""
         return self.collector.observations_data["data"]["wind_speed_kilometre"]
 
     @property
-    def native_wind_speed_unit(self):
+    def native_wind_speed_unit(self) -> str:
         """Return the unit of measurement for wind speed."""
         return UnitOfSpeed.KILOMETERS_PER_HOUR
 
     @property
-    def wind_bearing(self):
+    def wind_bearing(self) -> float | None:
         """Return the wind bearing."""
         return self.collector.observations_data["data"]["wind_direction"]
 
     @property
-    def native_wind_gust_speed(self):
+    def native_wind_gust_speed(self) -> float | None:
         """Return the wind gust speed."""
         return self.collector.observations_data["data"].get("gust_speed_kilometre")
 
     @property
-    def native_apparent_temperature(self):
+    def native_apparent_temperature(self) -> float | None:
         """Return the apparent temperature (feels like)."""
         return self.collector.observations_data["data"].get("temp_feels_like")
 
     @property
-    def native_pressure(self):
+    def native_pressure(self) -> float | None:
         """Return the pressure."""
         return self.collector.observations_data["data"].get("pressure")
 
     @property
-    def native_pressure_unit(self):
+    def native_pressure_unit(self) -> str:
         """Return the unit of measurement for pressure."""
         return UnitOfPressure.HPA
 
     @property
-    def native_visibility(self):
+    def native_visibility(self) -> float | None:
         """Return the visibility."""
         return self.collector.observations_data["data"].get("visibility_km")
 
     @property
-    def native_visibility_unit(self):
+    def native_visibility_unit(self) -> str:
         """Return the unit of measurement for visibility."""
         return UnitOfLength.KILOMETERS
 
     @property
-    def cloud_coverage(self):
+    def cloud_coverage(self) -> int | None:
         """Return the cloud coverage in oktas."""
         return self.collector.observations_data["data"].get("cloud_oktas")
 
     @property
-    def native_dew_point(self):
+    def native_dew_point(self) -> float | None:
         """Return the dew point."""
         return self.collector.observations_data["data"].get("dew_point")
 
     @property
-    def uv_index(self):
+    def uv_index(self) -> float | None:
         """Return the UV index from today's forecast."""
         if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
             if len(self.collector.daily_forecasts_data["data"]) > 0:
@@ -216,45 +216,46 @@ class WeatherBase(WeatherEntity):
         return None
 
     @property
-    def attribution(self):
+    def attribution(self) -> str:
         """Return the attribution."""
         return ATTRIBUTION
 
     @property
-    def condition(self):
+    def condition(self) -> str | None:
         """Return the current condition."""
         return MAP_CONDITION[
             self.collector.daily_forecasts_data["data"][0]["icon_descriptor"]
         ]
 
-    async def async_update(self):
+    async def async_update(self) -> None:
+        """Update the weather data."""
         await self.coordinator.async_update()
 
 
 class BomWeather(WeatherBase):
     """Comprehensive representation of a BOM weather entity with daily and hourly forecasts."""
 
-    def __init__(self, hass_data, location_name, entity_prefix):
+    def __init__(self, hass_data, location_name: str, entity_prefix: str) -> None:
         """Initialize the sensor."""
         super().__init__(hass_data, location_name, entity_prefix)
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> WeatherEntityFeature:
         """Return supported features - both daily and hourly forecasts."""
         return WeatherEntityFeature.FORECAST_DAILY | WeatherEntityFeature.FORECAST_HOURLY
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name."""
         return f"BOM {self.location_name}"
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return Unique ID string."""
         return self.entity_prefix
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, str | int | None]:
         """Return comprehensive weather attributes."""
         try:
             attrs = {}
