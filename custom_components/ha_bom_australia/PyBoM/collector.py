@@ -11,7 +11,7 @@ from typing import Any
 from .const import (
     MAP_MDI_ICON, URL_BASE, URL_DAILY,
     URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS,
-    USER_AGENT, WIND_DIRECTIONS
+    USER_AGENT
 )
 from .helpers import (
     flatten_dict, geohash_encode,
@@ -211,17 +211,6 @@ class Collector:
                             self.observations_data["data"]["delta_t"] = None
                     else:
                         self.observations_data["data"]["delta_t"] = None
-
-                    # Convert wind direction degrees to compass text
-                    wind_dir = self.observations_data["data"].get("wind_direction")
-                    if wind_dir is not None and wind_dir != "unavailable":
-                        try:
-                            index = round(wind_dir / 22.5) % 16
-                            self.observations_data["data"]["wind_direction_text"] = WIND_DIRECTIONS[index]
-                        except (TypeError, ValueError):
-                            self.observations_data["data"]["wind_direction_text"] = None
-                    else:
-                        self.observations_data["data"]["wind_direction_text"] = None
 
                     # Calculate dew point using Magnus-Tetens formula
                     temp = self.observations_data["data"].get("temp")
