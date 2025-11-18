@@ -291,7 +291,7 @@ The following table shows all known BOM warning types and their support status i
 | `tropical_cyclone_forecast_track_map` | ❌ Not Supported | Tropical Cyclone Forecast Track Map |
 | `tropical_cyclone_ocean_wind_warning` | ❌ Not Supported | Tropical Cyclone Ocean Wind Warning |
 | `tropical_cyclone_technical_bulletin` | ❌ Not Supported | Tropical Cyclone Technical Bulletin |
-| `tropical_cyclone_warning` | ❌ Not Supported | Tropical Cyclone Warning |
+| `tropical_cyclone_warning` | ✅ Supported | Tropical Cyclone Warning |
 
 **Notes:**
 - Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.

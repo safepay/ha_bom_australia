@@ -71,7 +71,8 @@
           "heatwave_warning": "Heatwave Warning",
           "frost_warning": "Frost Warning",
           "bushwalkers_alert": "Bushwalkers Alert",
-          "fire_weather_warning": "Fire Weather Warning"
+          "fire_weather_warning": "Fire Weather Warning",
+          "tropical_cyclone_warning": "Tropical Cyclone Warning"
         }
       },
       "forecasts_monitored": {
@@ -175,7 +176,8 @@
           "heatwave_warning": "Heatwave Warning",
           "frost_warning": "Frost Warning",
           "bushwalkers_alert": "Bushwalkers Alert",
-          "fire_weather_warning": "Fire Weather Warning"
+          "fire_weather_warning": "Fire Weather Warning",
+          "tropical_cyclone_warning": "Tropical Cyclone Warning"
         }
       },
       "forecasts_monitored": {

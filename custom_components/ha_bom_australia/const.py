@@ -339,4 +339,5 @@ WARNING_TYPES: Final = {
     "frost_warning": {"name": "Frost Warning", "icon": "mdi:snowflake-alert"},
     "bushwalkers_alert": {"name": "Bushwalkers Alert", "icon": "mdi:hiking"},
     "fire_weather_warning": {"name": "Fire Weather Warning", "icon": "mdi:fire-alert"},
+    "tropical_cyclone_warning": {"name": "Tropical Cyclone Warning", "icon": "mdi:weather-hurricane"},
 }
