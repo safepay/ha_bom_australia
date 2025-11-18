@@ -45,3 +45,39 @@ def geohash_encode(latitude: float, longitude: float, precision: int = 6) -> str
             bit = 0
             ch = 0
     return ''.join(geohash)
+
+def geohash_decode(geohash: str) -> tuple[float, float]:
+    """Decode geohash string to latitude/longitude.
+
+    Returns:
+        Tuple of (latitude, longitude) representing the center point of the geohash.
+    """
+    base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
+    lat_interval = (-90.0, 90.0)
+    lon_interval = (-180.0, 180.0)
+    bits = [16, 8, 4, 2, 1]
+    even = True
+
+    for c in geohash:
+        idx = base32.index(c)
+        for mask in bits:
+            if even:
+                # Longitude bit
+                mid = (lon_interval[0] + lon_interval[1]) / 2
+                if idx & mask:
+                    lon_interval = (mid, lon_interval[1])
+                else:
+                    lon_interval = (lon_interval[0], mid)
+            else:
+                # Latitude bit
+                mid = (lat_interval[0] + lat_interval[1]) / 2
+                if idx & mask:
+                    lat_interval = (mid, lat_interval[1])
+                else:
+                    lat_interval = (lat_interval[0], mid)
+            even = not even
+
+    # Return center point of the geohash box
+    latitude = (lat_interval[0] + lat_interval[1]) / 2
+    longitude = (lon_interval[0] + lon_interval[1]) / 2
+    return latitude, longitude
