@@ -287,16 +287,12 @@ The following table shows all known BOM warning types and their support status i
 | `sheep_graziers_warning` | ✅ Supported | Sheep Graziers Warning |
 | `squall_warning` | ❌ Not Supported | Squall Warning |
 | `state_territory_tsunami_bulletin` | ❌ Not Supported | State/Territory Tsunami Bulletin |
-| `tropical_cyclone_advice` | ❌ Not Supported | Tropical Cyclone Advice |
-| `tropical_cyclone_forecast_track_map` | ❌ Not Supported | Tropical Cyclone Forecast Track Map |
-| `tropical_cyclone_ocean_wind_warning` | ❌ Not Supported | Tropical Cyclone Ocean Wind Warning |
-| `tropical_cyclone_technical_bulletin` | ❌ Not Supported | Tropical Cyclone Technical Bulletin |
 | `tropical_cyclone_warning` | ✅ Supported | Tropical Cyclone Warning |
 
 **Notes:**
 - Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.
 - The BOM website documentation lists some warning types (e.g., `bushwalkers_weather_alert`) that differ from what the API actually returns (e.g., `bushwalkers_alert`).
-- The API may return warning types not listed on the BOM website (e.g., `tropical_cyclone_warning` vs the website's `tropical_cyclone_advice`).
+- **Tropical Cyclone Warnings:** The BOM website lists multiple cyclone warning types (`tropical_cyclone_advice`, `tropical_cyclone_forecast_track_map`, `tropical_cyclone_ocean_wind_warning`, `tropical_cyclone_technical_bulletin`), but the API actually returns `tropical_cyclone_warning` for active cyclones. The website types have not been observed in production and may be legacy/theoretical.
 - This table reflects actual API response values observed in production, not BOM's official documentation.
 
 ### Warning Field Values
