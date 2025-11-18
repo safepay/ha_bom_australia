@@ -2,7 +2,12 @@
 
 This folder contains documentation for the Bureau of Meteorology's undocumented APIs. These APIs are used by the BOM mobile app and https://weather.bom.gov.au.
 
-All APIs return JSON data. Location selection uses a 7-character geohash.
+All APIs return JSON data. Location selection uses geohashes for precision targeting.
+
+**Geohash Requirements:**
+- **Hourly forecasts:** Requires 6-character geohash (7-char returns error)
+- **Daily forecasts, warnings, observations:** Accept both 6 or 7-character geohash
+- **Recommendation:** Use 6-character geohash for all endpoints as the common denominator
 
 ## Location Search
 
