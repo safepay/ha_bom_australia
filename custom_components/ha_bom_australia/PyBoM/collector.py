@@ -36,8 +36,11 @@ class Collector:
         self.daily_forecasts_data = None
         self.hourly_forecasts_data = None
         self.warnings_data = None
-        self.geohash7 = geohash_encode(latitude, longitude)
-        self.geohash6 = self.geohash7[:6]
+        # BOM API has inconsistent geohash requirements:
+        # - Hourly forecasts: requires 6-char geohash
+        # - Daily forecasts/warnings: accepts 6 or 7-char geohash
+        # We use 6-char as the common denominator
+        self.geohash = geohash_encode(latitude, longitude, precision=6)
         # Cache storage with timestamps
         self._cache = {
             "locations": {"data": None, "timestamp": 0},
@@ -94,7 +97,7 @@ class Collector:
         try:
             async with aiohttp.ClientSession(headers=headers) as session:
                 data = await self._fetch_with_retry(
-                    session, URL_BASE + self.geohash7, "locations"
+                    session, URL_BASE + self.geohash, "locations"
                 )
                 if data:
                     self.locations_data = data
@@ -186,14 +189,14 @@ class Collector:
                 # Get location data if not already available
                 if self.locations_data is None:
                     data = await self._fetch_with_retry(
-                        session, URL_BASE + self.geohash7, "locations"
+                        session, URL_BASE + self.geohash, "locations"
                     )
                     if data:
                         self.locations_data = data
                 
                 # Get observations data
                 data = await self._fetch_with_retry(
-                    session, URL_BASE + self.geohash6 + URL_OBSERVATIONS, "observations"
+                    session, URL_BASE + self.geohash + URL_OBSERVATIONS, "observations"
                 )
                 if data:
                     self.observations_data = data
@@ -239,7 +242,7 @@ class Collector:
 
                 # Get daily forecast data
                 data = await self._fetch_with_retry(
-                    session, URL_BASE + self.geohash6 + URL_DAILY, "daily_forecasts"
+                    session, URL_BASE + self.geohash + URL_DAILY, "daily_forecasts"
                 )
                 if data:
                     self.daily_forecasts_data = data
@@ -247,7 +250,7 @@ class Collector:
 
                 # Get hourly forecast data
                 data = await self._fetch_with_retry(
-                    session, URL_BASE + self.geohash6 + URL_HOURLY, "hourly_forecasts"
+                    session, URL_BASE + self.geohash + URL_HOURLY, "hourly_forecasts"
                 )
                 if data:
                     self.hourly_forecasts_data = data
@@ -255,7 +258,7 @@ class Collector:
 
                 # Get warnings data
                 data = await self._fetch_with_retry(
-                    session, URL_BASE + self.geohash6 + URL_WARNINGS, "warnings"
+                    session, URL_BASE + self.geohash + URL_WARNINGS, "warnings"
                 )
                 if data:
                     self.warnings_data = data
