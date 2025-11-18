@@ -203,6 +203,7 @@ Returns active warnings for the given geohash.
   "data": [
     {
       "id": "NSW_FL049_IDN36503",
+      "area_id": "NSW_FL049",
       "type": "flood_watch",
       "title": "Flood Watch for Queanbeyan and Molonglo Rivers",
       "short_title": "Flood Watch",
@@ -214,6 +215,7 @@ Returns active warnings for the given geohash.
     },
     {
       "id": "NSW_PW017_IDN29000",
+      "area_id": "NSW_PW017",
       "type": "sheep_graziers_warning",
       "title": "Sheep Graziers Warning for Australian Capital Territory",
       "short_title": "Sheep Graziers Warning",
@@ -226,6 +228,11 @@ Returns active warnings for the given geohash.
   ]
 }
 ```
+
+**Key Fields:**
+- `area_id`: Geographic zone identifier (format: `STATE_TYPE###` where TYPE is warning category like MW=Marine, PW=Public Weather, FL=Flood)
+- `type`: Warning type (see Warning Types table below)
+- `short_title`: Human-readable warning name (may differ from type)
 
 ### Warning Detail
 
@@ -284,10 +291,13 @@ The following table shows all known BOM warning types and their support status i
 | `tropical_cyclone_forecast_track_map` | ❌ Not Supported | Tropical Cyclone Forecast Track Map |
 | `tropical_cyclone_ocean_wind_warning` | ❌ Not Supported | Tropical Cyclone Ocean Wind Warning |
 | `tropical_cyclone_technical_bulletin` | ❌ Not Supported | Tropical Cyclone Technical Bulletin |
+| `tropical_cyclone_warning` | ❌ Not Supported | Tropical Cyclone Warning |
 
 **Notes:**
 - Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.
-- The BOM website documentation lists some warning types (e.g., `bushwalkers_weather_alert`) that differ from what the API actually returns (e.g., `bushwalkers_alert`). This table reflects the actual API response values.
+- The BOM website documentation lists some warning types (e.g., `bushwalkers_weather_alert`) that differ from what the API actually returns (e.g., `bushwalkers_alert`).
+- The API may return warning types not listed on the BOM website (e.g., `tropical_cyclone_warning` vs the website's `tropical_cyclone_advice`).
+- This table reflects actual API response values observed in production, not BOM's official documentation.
 
 ### Warning Field Values
 
