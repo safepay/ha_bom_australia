@@ -236,16 +236,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         description_placeholders = {
             "location_name": location_name,
             "default_prefix": default_prefix,
+            "station_name": "Unknown",
+            "station_id": "Unknown",
         }
 
         # Try to get station name from observations if available
         if self.collector.observations_data and "data" in self.collector.observations_data:
             station_data = self.collector.observations_data["data"].get("station", {})
             if station_data:
-                station_name = station_data.get("name", "Unknown")
-                station_id = station_data.get("bom_id", "Unknown")
-                description_placeholders["station_name"] = station_name
-                description_placeholders["station_id"] = station_id
+                description_placeholders["station_name"] = station_data.get("name", "Unknown")
+                description_placeholders["station_id"] = station_data.get("bom_id", "Unknown")
 
         data_schema = vol.Schema(
             {
