@@ -11,6 +11,8 @@ All APIs return JSON data. Location selection uses geohashes for precision targe
 
 ## Location Search
 
+### Search by Coordinates
+
 Fetch the geohash for a given latitude/longitude.
 
 **Endpoint:** `https://api.weather.bom.gov.au/v1/locations?search={latitude},{longitude}`
@@ -35,6 +37,49 @@ Fetch the geohash for a given latitude/longitude.
   ]
 }
 ```
+
+### Search by Postcode
+
+Search for all locations within a specific Australian postcode. Returns multiple locations if the postcode covers multiple towns.
+
+**Endpoint:** `https://api.weather.bom.gov.au/v1/locations?search={postcode}`
+
+**Example:** `https://api.weather.bom.gov.au/v1/locations?search=4417`
+
+**Response:**
+```json
+{
+  "metadata": {
+    "response_timestamp": "2025-11-18T21:24:08Z",
+    "copyright": "..."
+  },
+  "data": [
+    {
+      "geohash": "r74n52x",
+      "id": "Noorindoo-r74n52x",
+      "name": "Noorindoo",
+      "postcode": "4417",
+      "state": "QLD"
+    },
+    {
+      "geohash": "r71yk13",
+      "id": "Oberina-r71yk13",
+      "name": "Oberina",
+      "postcode": "4417",
+      "state": "QLD"
+    },
+    {
+      "geohash": "r74j2pv",
+      "id": "Surat-r74j2pv",
+      "name": "Surat",
+      "postcode": "4417",
+      "state": "QLD"
+    }
+  ]
+}
+```
+
+**Note:** Each location within a postcode has its own unique geohash, which may result in different weather data and warnings. This is particularly important for warnings, as a single postcode can span multiple warning zones. Always select the specific town/location rather than relying on postcode-level geocoding.
 
 ## Location Info
 

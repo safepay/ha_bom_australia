@@ -27,8 +27,17 @@ MAX_CACHE_AGE = 86400  # 24 hours in seconds
 class Collector:
     """Collector for PyBoM."""
 
-    def __init__(self, latitude: float, longitude: float) -> None:
-        """Init collector."""
+    def __init__(self, latitude: float, longitude: float, geohash: str | None = None) -> None:
+        """Init collector.
+
+        Args:
+            latitude: Latitude coordinate
+            longitude: Longitude coordinate
+            geohash: Optional BOM-provided geohash. If provided, this will be used
+                    instead of calculating one. This ensures we use the exact same
+                    geohash that BOM's location search returns, which may differ
+                    slightly from calculated values.
+        """
         self.latitude = latitude
         self.longitude = longitude
         self.locations_data = None
@@ -36,11 +45,16 @@ class Collector:
         self.daily_forecasts_data = None
         self.hourly_forecasts_data = None
         self.warnings_data = None
-        # BOM API has inconsistent geohash requirements:
-        # - Hourly forecasts: requires 6-char geohash
-        # - Daily forecasts/warnings: accepts 6 or 7-char geohash
-        # We use 6-char as the common denominator
-        self.geohash = geohash_encode(latitude, longitude, precision=6)
+
+        # Use provided geohash if available, otherwise calculate it
+        if geohash:
+            self.geohash = geohash
+        else:
+            # BOM API has inconsistent geohash requirements:
+            # - Hourly forecasts: requires 6-char geohash
+            # - Daily forecasts/warnings: accepts 6 or 7-char geohash
+            # We use 6-char as the common denominator when calculating
+            self.geohash = geohash_encode(latitude, longitude, precision=6)
         # Cache storage with timestamps
         self._cache = {
             "locations": {"data": None, "timestamp": 0},

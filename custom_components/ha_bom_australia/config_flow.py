@@ -77,23 +77,42 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 use_postcode = user_input.get("use_postcode", False)
                 postcode = user_input.get("postcode")
 
-                # If use_postcode is checked and postcode is provided, convert to lat/long
+                # If use_postcode is checked and postcode is provided, query BOM API for locations
                 if PGEOCODE_AVAILABLE and use_postcode:
                     if postcode and postcode.strip():
-                        # Run pgeocode in executor to avoid blocking the event loop
-                        def _lookup_postcode():
-                            nomi = pgeocode.Nominatim('AU')
-                            return nomi.query_postal_code(postcode.strip())
+                        # Query BOM API for locations in this postcode
+                        import aiohttp
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                url = f"https://api.weather.bom.gov.au/v1/locations?search={postcode.strip()}"
+                                headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+                                async with session.get(url, headers=headers) as resp:
+                                    if resp.status == 200:
+                                        result = await resp.json()
+                                        locations = result.get("data", [])
 
-                        location = await self.hass.async_add_executor_job(_lookup_postcode)
-
-                        if location.latitude is None or location.longitude is None:
-                            _LOGGER.debug(f"Invalid postcode: {postcode}")
-                            errors["base"] = "invalid_postcode"
-                        else:
-                            latitude = float(location.latitude)
-                            longitude = float(location.longitude)
-                            _LOGGER.info(f"Postcode {postcode} resolved to: {latitude}, {longitude}")
+                                        if not locations:
+                                            _LOGGER.debug(f"No locations found for postcode: {postcode}")
+                                            errors["base"] = "invalid_postcode"
+                                        elif len(locations) == 1:
+                                            # Only one location, use it directly
+                                            location = locations[0]
+                                            self.postcode_location = location
+                                            # Store postcode for later use
+                                            self.postcode = postcode.strip()
+                                            # Move to weather_name step (will extract coords from geohash there)
+                                            return await self.async_step_weather_name()
+                                        else:
+                                            # Multiple locations, let user choose
+                                            self.postcode_locations = locations
+                                            self.postcode = postcode.strip()
+                                            return await self.async_step_select_location()
+                                    else:
+                                        _LOGGER.debug(f"BOM API returned status {resp.status} for postcode: {postcode}")
+                                        errors["base"] = "invalid_postcode"
+                        except Exception as e:
+                            _LOGGER.exception(f"Error querying BOM API for postcode {postcode}: {e}")
+                            errors["base"] = "cannot_connect"
                     else:
                         errors["base"] = "postcode_required"
 
@@ -135,8 +154,78 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=data_schema, errors=errors
         )
 
+    async def async_step_select_location(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle location selection when multiple locations found for postcode."""
+        # Build a list of location names for the dropdown
+        location_options = {
+            loc["id"]: f"{loc['name']} ({loc['state']})"
+            for loc in self.postcode_locations
+        }
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("location_id"): vol.In(location_options),
+            }
+        )
+
+        errors = {}
+        if user_input is not None:
+            try:
+                # Find the selected location
+                selected_id = user_input["location_id"]
+                selected_location = next(
+                    loc for loc in self.postcode_locations if loc["id"] == selected_id
+                )
+                self.postcode_location = selected_location
+
+                # Move to weather_name step
+                return await self.async_step_weather_name()
+
+            except Exception:
+                _LOGGER.exception("Error selecting location")
+                errors["base"] = "unknown"
+
+        # Show form with location dropdown
+        return self.async_show_form(
+            step_id="select_location",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={"postcode": self.postcode},
+        )
+
     async def async_step_weather_name(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the entity prefix configuration step."""
+        # If coming from postcode flow, create the collector using BOM location data
+        if hasattr(self, 'postcode_location') and not hasattr(self, 'collector'):
+            location = self.postcode_location
+            geohash = location["geohash"]
+
+            # Decode geohash to get lat/lon
+            from .PyBoM.helpers import geohash_decode
+            latitude, longitude = geohash_decode(geohash)
+
+            # Create collector with BOM's geohash (not calculated)
+            self.collector = Collector(
+                float(latitude),
+                float(longitude),
+                geohash=geohash  # Pass BOM's geohash directly
+            )
+
+            # Save the coordinates to data
+            self.data = {
+                CONF_LATITUDE: float(latitude),
+                CONF_LONGITUDE: float(longitude),
+            }
+
+            # Fetch location data to populate collector
+            await self.collector.get_locations_data()
+            if self.collector.locations_data is None:
+                _LOGGER.error(f"Failed to get location data for geohash {geohash}")
+                return self.async_abort(reason="bad_location")
+
+            # Populate observations and daily forecasts data
+            await self.collector.async_update()
+
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
 
@@ -357,52 +446,123 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the initial step."""
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_LATITUDE,
-                    default=self.config_entry.options.get(
+        # Build schema with postcode option if pgeocode is available
+        if PGEOCODE_AVAILABLE:
+            data_schema = vol.Schema(
+                {
+                    vol.Required(
                         CONF_LATITUDE,
-                        self.config_entry.data.get(
-                            CONF_LATITUDE, self.hass.config.latitude
+                        default=self.config_entry.options.get(
+                            CONF_LATITUDE,
+                            self.config_entry.data.get(
+                                CONF_LATITUDE, self.hass.config.latitude
+                            ),
                         ),
-                    ),
-                ): float,
-                vol.Required(
-                    CONF_LONGITUDE,
-                    default=self.config_entry.options.get(
+                    ): float,
+                    vol.Required(
                         CONF_LONGITUDE,
-                        self.config_entry.data.get(
-                            CONF_LONGITUDE, self.hass.config.longitude
+                        default=self.config_entry.options.get(
+                            CONF_LONGITUDE,
+                            self.config_entry.data.get(
+                                CONF_LONGITUDE, self.hass.config.longitude
+                            ),
                         ),
-                    ),
-                ): float,
-            }
-        )
+                    ): float,
+                    vol.Optional("use_postcode", default=False): bool,
+                    vol.Optional("postcode"): cv.string,
+                }
+            )
+        else:
+            data_schema = vol.Schema(
+                {
+                    vol.Required(
+                        CONF_LATITUDE,
+                        default=self.config_entry.options.get(
+                            CONF_LATITUDE,
+                            self.config_entry.data.get(
+                                CONF_LATITUDE, self.hass.config.latitude
+                            ),
+                        ),
+                    ): float,
+                    vol.Required(
+                        CONF_LONGITUDE,
+                        default=self.config_entry.options.get(
+                            CONF_LONGITUDE,
+                            self.config_entry.data.get(
+                                CONF_LONGITUDE, self.hass.config.longitude
+                            ),
+                        ),
+                    ): float,
+                }
+            )
 
         errors = {}
         if user_input is not None:
             try:
-                # Create the collector object with the given long. and lat.
-                self.collector = Collector(
-                    user_input[CONF_LATITUDE],
-                    user_input[CONF_LONGITUDE],
-                )
+                latitude = user_input.get(CONF_LATITUDE)
+                longitude = user_input.get(CONF_LONGITUDE)
+                use_postcode = user_input.get("use_postcode", False)
+                postcode = user_input.get("postcode")
 
-                # Save the user input into self.data so it's retained
-                self.data = user_input
+                # If use_postcode is checked and postcode is provided, query BOM API for locations
+                if PGEOCODE_AVAILABLE and use_postcode:
+                    if postcode and postcode.strip():
+                        # Query BOM API for locations in this postcode
+                        import aiohttp
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                url = f"https://api.weather.bom.gov.au/v1/locations?search={postcode.strip()}"
+                                headers = {"User-Agent": "MakeThisAPIOpenSource/1.0.0"}
+                                async with session.get(url, headers=headers) as resp:
+                                    if resp.status == 200:
+                                        result = await resp.json()
+                                        locations = result.get("data", [])
 
-                # Check if location is valid
-                await self.collector.get_locations_data()
-                if self.collector.locations_data is None:
-                    _LOGGER.debug(f"Unsupported Lat/Lon")
-                    errors["base"] = "bad_location"
-                else:
-                    # Populate observations and daily forecasts data
-                    await self.collector.async_update()
+                                        if not locations:
+                                            _LOGGER.debug(f"No locations found for postcode: {postcode}")
+                                            errors["base"] = "invalid_postcode"
+                                        elif len(locations) == 1:
+                                            # Only one location, use it directly
+                                            location = locations[0]
+                                            self.postcode_location = location
+                                            self.postcode = postcode.strip()
+                                            return await self.async_step_weather_name()
+                                        else:
+                                            # Multiple locations, let user choose
+                                            self.postcode_locations = locations
+                                            self.postcode = postcode.strip()
+                                            return await self.async_step_select_location()
+                                    else:
+                                        _LOGGER.debug(f"BOM API returned status {resp.status} for postcode: {postcode}")
+                                        errors["base"] = "invalid_postcode"
+                        except Exception as e:
+                            _LOGGER.exception(f"Error querying BOM API for postcode {postcode}: {e}")
+                            errors["base"] = "cannot_connect"
+                    else:
+                        errors["base"] = "postcode_required"
 
-                    # Move onto the next step of the config flow
-                    return await self.async_step_weather_name()
+                # Proceed with lat/lon if not using postcode
+                if not errors and not (PGEOCODE_AVAILABLE and use_postcode):
+                    # Create the collector object with the given long. and lat.
+                    self.collector = Collector(
+                        user_input[CONF_LATITUDE],
+                        user_input[CONF_LONGITUDE],
+                    )
+
+                    # Save the user input into self.data so it's retained
+                    self.data = user_input
+
+                    # Check if location is valid
+                    await self.collector.get_locations_data()
+                    if self.collector.locations_data is None:
+                        _LOGGER.debug(f"Unsupported Lat/Lon")
+                        errors["base"] = "bad_location"
+                    else:
+                        # Populate observations and daily forecasts data
+                        await self.collector.async_update()
+
+                        # Move onto the next step of the config flow
+                        return await self.async_step_weather_name()
 
             except Exception:
                 _LOGGER.exception("Unexpected exception")
@@ -413,8 +573,78 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             step_id="init", data_schema=data_schema, errors=errors
         )
 
+    async def async_step_select_location(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Handle location selection when multiple locations found for postcode."""
+        # Build a list of location names for the dropdown
+        location_options = {
+            loc["id"]: f"{loc['name']} ({loc['state']})"
+            for loc in self.postcode_locations
+        }
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("location_id"): vol.In(location_options),
+            }
+        )
+
+        errors = {}
+        if user_input is not None:
+            try:
+                # Find the selected location
+                selected_id = user_input["location_id"]
+                selected_location = next(
+                    loc for loc in self.postcode_locations if loc["id"] == selected_id
+                )
+                self.postcode_location = selected_location
+
+                # Move to weather_name step
+                return await self.async_step_weather_name()
+
+            except Exception:
+                _LOGGER.exception("Error selecting location")
+                errors["base"] = "unknown"
+
+        # Show form with location dropdown
+        return self.async_show_form(
+            step_id="select_location",
+            data_schema=data_schema,
+            errors=errors,
+            description_placeholders={"postcode": self.postcode},
+        )
+
     async def async_step_weather_name(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the entity prefix configuration step."""
+        # If coming from postcode flow, create the collector using BOM location data
+        if hasattr(self, 'postcode_location') and not hasattr(self, 'collector'):
+            location = self.postcode_location
+            geohash = location["geohash"]
+
+            # Decode geohash to get lat/lon
+            from .PyBoM.helpers import geohash_decode
+            latitude, longitude = geohash_decode(geohash)
+
+            # Create collector with BOM's geohash (not calculated)
+            self.collector = Collector(
+                float(latitude),
+                float(longitude),
+                geohash=geohash  # Pass BOM's geohash directly
+            )
+
+            # Save the coordinates to data
+            self.data = {
+                CONF_LATITUDE: float(latitude),
+                CONF_LONGITUDE: float(longitude),
+            }
+
+            # Fetch location data to populate collector
+            await self.collector.get_locations_data()
+            if self.collector.locations_data is None:
+                _LOGGER.error(f"Failed to get location data for geohash {geohash}")
+                return self.async_abort(reason="bad_location")
+
+            # Populate observations and daily forecasts data
+            await self.collector.async_update()
+
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
         default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
