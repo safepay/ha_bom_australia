@@ -11,6 +11,13 @@
           "postcode": "Australian Postcode (e.g., 3000 for Melbourne)"
         }
       },
+      "select_location": {
+        "title": "Select Your Location",
+        "description": "Multiple locations found for postcode {postcode}. Please select your specific town or locality.\n\nNote: Each location has its own weather data and warning zone. Selecting the correct location ensures accurate warnings for your area.",
+        "data": {
+          "location_id": "Location"
+        }
+      },
       "weather_name": {
         "title": "Configure Entity Prefix",
         "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix '{default_prefix}':\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
@@ -110,10 +117,19 @@
     "step": {
       "init": {
         "title": "Reconfigure Location",
-        "description": "Update your location coordinates to find a different Bureau of Meteorology weather station.",
+        "description": "Update your location coordinates to find a different Bureau of Meteorology weather station.\n\nBy default, enter coordinates directly. Alternatively, you can check the box below to search by Australian postcode instead.",
         "data": {
           "latitude": "Latitude",
-          "longitude": "Longitude"
+          "longitude": "Longitude",
+          "use_postcode": "Use Australian postcode instead?",
+          "postcode": "Australian Postcode (e.g., 3000 for Melbourne)"
+        }
+      },
+      "select_location": {
+        "title": "Select Your Location",
+        "description": "Multiple locations found for postcode {postcode}. Please select your specific town or locality.\n\nNote: Each location has its own weather data and warning zone. Selecting the correct location ensures accurate warnings for your area.",
+        "data": {
+          "location_id": "Location"
         }
       },
       "weather_name": {
