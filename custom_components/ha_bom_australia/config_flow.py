@@ -226,6 +226,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Populate observations and daily forecasts data
             await self.collector.async_update()
 
+            # Debug: Check what we got
+            _LOGGER.info(f"Postcode flow - Location: {location['name']}, Geohash: {geohash}")
+            _LOGGER.info(f"Observations available: {self.collector.observations_data is not None}")
+            if self.collector.observations_data and "data" in self.collector.observations_data:
+                station = self.collector.observations_data["data"].get("station")
+                _LOGGER.info(f"Station data: {station}")
+
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
 
