@@ -10,12 +10,6 @@ from homeassistant import config_entries, exceptions
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 
-try:
-    import pgeocode
-    PGEOCODE_AVAILABLE = True
-except ImportError:
-    PGEOCODE_AVAILABLE = False
-
 from .const import (
     CONF_ENTITY_PREFIX,
     CONF_FORECASTS_CREATE,
@@ -51,23 +45,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the initial step."""
-        # Build schema with postcode option if pgeocode is available
-        if PGEOCODE_AVAILABLE:
-            data_schema = vol.Schema(
-                {
-                    vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
-                    vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
-                    vol.Optional("use_postcode", default=False): bool,
-                    vol.Optional("postcode"): cv.string,
-                }
-            )
-        else:
-            data_schema = vol.Schema(
-                {
-                    vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
-                    vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
-                }
-            )
+        # Build schema with postcode option (uses BOM API postcode search)
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): float,
+                vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): float,
+                vol.Optional("use_postcode", default=False): bool,
+                vol.Optional("postcode"): cv.string,
+            }
+        )
 
         errors = {}
         if user_input is not None:
@@ -78,7 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 postcode = user_input.get("postcode")
 
                 # If use_postcode is checked and postcode is provided, query BOM API for locations
-                if PGEOCODE_AVAILABLE and use_postcode:
+                if use_postcode:
                     if postcode and postcode.strip():
                         # Query BOM API for locations in this postcode
                         import aiohttp
@@ -453,55 +439,31 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle the initial step."""
-        # Build schema with postcode option if pgeocode is available
-        if PGEOCODE_AVAILABLE:
-            data_schema = vol.Schema(
-                {
-                    vol.Required(
+        # Build schema with postcode option (uses BOM API postcode search)
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_LATITUDE,
+                    default=self.config_entry.options.get(
                         CONF_LATITUDE,
-                        default=self.config_entry.options.get(
-                            CONF_LATITUDE,
-                            self.config_entry.data.get(
-                                CONF_LATITUDE, self.hass.config.latitude
-                            ),
+                        self.config_entry.data.get(
+                            CONF_LATITUDE, self.hass.config.latitude
                         ),
-                    ): float,
-                    vol.Required(
+                    ),
+                ): float,
+                vol.Required(
+                    CONF_LONGITUDE,
+                    default=self.config_entry.options.get(
                         CONF_LONGITUDE,
-                        default=self.config_entry.options.get(
-                            CONF_LONGITUDE,
-                            self.config_entry.data.get(
-                                CONF_LONGITUDE, self.hass.config.longitude
-                            ),
+                        self.config_entry.data.get(
+                            CONF_LONGITUDE, self.hass.config.longitude
                         ),
-                    ): float,
-                    vol.Optional("use_postcode", default=False): bool,
-                    vol.Optional("postcode"): cv.string,
-                }
-            )
-        else:
-            data_schema = vol.Schema(
-                {
-                    vol.Required(
-                        CONF_LATITUDE,
-                        default=self.config_entry.options.get(
-                            CONF_LATITUDE,
-                            self.config_entry.data.get(
-                                CONF_LATITUDE, self.hass.config.latitude
-                            ),
-                        ),
-                    ): float,
-                    vol.Required(
-                        CONF_LONGITUDE,
-                        default=self.config_entry.options.get(
-                            CONF_LONGITUDE,
-                            self.config_entry.data.get(
-                                CONF_LONGITUDE, self.hass.config.longitude
-                            ),
-                        ),
-                    ): float,
-                }
-            )
+                    ),
+                ): float,
+                vol.Optional("use_postcode", default=False): bool,
+                vol.Optional("postcode"): cv.string,
+            }
+        )
 
         errors = {}
         if user_input is not None:
@@ -512,7 +474,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 postcode = user_input.get("postcode")
 
                 # If use_postcode is checked and postcode is provided, query BOM API for locations
-                if PGEOCODE_AVAILABLE and use_postcode:
+                if use_postcode:
                     if postcode and postcode.strip():
                         # Query BOM API for locations in this postcode
                         import aiohttp
@@ -549,7 +511,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                         errors["base"] = "postcode_required"
 
                 # Proceed with lat/lon if not using postcode
-                if not errors and not (PGEOCODE_AVAILABLE and use_postcode):
+                if not errors and not use_postcode:
                     # Create the collector object with the given long. and lat.
                     self.collector = Collector(
                         user_input[CONF_LATITUDE],
