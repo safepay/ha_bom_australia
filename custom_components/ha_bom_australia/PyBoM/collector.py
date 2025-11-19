@@ -36,7 +36,8 @@ class Collector:
             geohash: Optional BOM-provided geohash. If provided, this will be used
                     instead of calculating one. This ensures we use the exact same
                     geohash that BOM's location search returns, which may differ
-                    slightly from calculated values.
+                    slightly from calculated values. Will be truncated to 6 chars
+                    if longer, as observations/hourly endpoints require exactly 6.
         """
         self.latitude = latitude
         self.longitude = longitude
@@ -48,11 +49,13 @@ class Collector:
 
         # Use provided geohash if available, otherwise calculate it
         if geohash:
-            self.geohash = geohash
+            # BOM postcode search returns 7-char geohashes, but observations and
+            # hourly endpoints require exactly 6 chars. Truncate if necessary.
+            self.geohash = geohash[:6]
         else:
             # BOM API has inconsistent geohash requirements:
-            # - Hourly forecasts: requires 6-char geohash
-            # - Daily forecasts/warnings: accepts 6 or 7-char geohash
+            # - Hourly forecasts: requires 6-character geohash
+            # - Daily forecasts/warnings: accepts 6 or 7-character geohash
             # We use 6-char as the common denominator when calculating
             self.geohash = geohash_encode(latitude, longitude, precision=6)
         # Cache storage with timestamps
