@@ -270,8 +270,10 @@ class BomWeather(WeatherBase):
             # Add station data
             if self.collector.observations_data and "data" in self.collector.observations_data:
                 obs_data = self.collector.observations_data["data"]
-                attrs["station_name"] = obs_data.get("station", {}).get("name")
-                attrs["station_id"] = obs_data.get("station", {}).get("bom_id")
+                station = obs_data.get("station")
+                if station:
+                    attrs["station_name"] = station.get("name")
+                    attrs["station_id"] = station.get("bom_id")
 
             # Add today's forecast data (supplementary information not in standard weather properties)
             if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
