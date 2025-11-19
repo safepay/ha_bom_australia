@@ -1,16 +1,12 @@
 {
   "domain": "ha_bom_australia",
-  "name": "BOM Australia",
-  "integration_type": "service",
+  "name": "Bureau of Meteorology",
+  "codeowners": ["@safepay"],
   "config_flow": true,
   "documentation": "https://github.com/safepay/ha_bom_australia",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/safepay/ha_bom_australia/issues",
+  "integration_type": "service",
   "requirements": ["iso8601"],
-  "icon": "mdi:weather-partly-cloudy",
-  "ssdp": [],
-  "zeroconf": [],
-  "homekit": {},
-  "dependencies": [],
-  "version": "1.4.2",
-  "codeowners": ["@safepay"]
+  "version": "1.5.0"
 }
