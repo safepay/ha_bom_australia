@@ -226,16 +226,5 @@
         }
       }
     }
-  },
-  "error": {
-    "bad_location": "Could not find weather data for this location",
-    "cannot_connect": "Failed to connect to Bureau of Meteorology",
-    "unknown": "Unexpected error occurred",
-    "invalid_postcode": "Invalid Australian postcode. Please check and try again.",
-    "postcode_required": "Please enter an Australian postcode when 'Use postcode' is checked.",
-    "invalid_coords": "Invalid coordinates. Please check latitude and longitude values."
-  },
-  "abort": {
-    "already_configured": "This location is already configured"
   }
 }
