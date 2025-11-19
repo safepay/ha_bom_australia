@@ -219,6 +219,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 station = self.collector.observations_data["data"].get("station")
                 _LOGGER.info(f"Station data: {station}")
 
+        # Check if observations are available
+        self.has_observations = False
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            station = self.collector.observations_data["data"].get("station")
+            if station:
+                self.has_observations = True
+
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
 
@@ -226,19 +233,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         default_prefix = f"BoM_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         # Build description with station information
-        description_placeholders = {
-            "location_name": location_name,
-            "default_prefix": default_prefix,
-            "station_name": "Unknown",
-            "station_id": "Unknown",
-        }
+        if not self.has_observations:
+            # No observation station - show limited availability message
+            description_placeholders = {
+                "location_name": location_name,
+                "default_prefix": default_prefix,
+                "station_name": "None (forecasts and warnings only)",
+                "station_id": "N/A",
+            }
+        else:
+            description_placeholders = {
+                "location_name": location_name,
+                "default_prefix": default_prefix,
+                "station_name": "Unknown",
+                "station_id": "Unknown",
+            }
 
-        # Try to get station name from observations if available
-        if self.collector.observations_data and "data" in self.collector.observations_data:
-            station_data = self.collector.observations_data["data"].get("station", {})
-            if station_data:
-                description_placeholders["station_name"] = station_data.get("name", "Unknown")
-                description_placeholders["station_id"] = station_data.get("bom_id", "Unknown")
+            # Try to get station name from observations if available
+            if self.collector.observations_data and "data" in self.collector.observations_data:
+                station_data = self.collector.observations_data["data"].get("station", {})
+                if station_data:
+                    description_placeholders["station_name"] = station_data.get("name", "Unknown")
+                    description_placeholders["station_id"] = station_data.get("bom_id", "Unknown")
 
         data_schema = vol.Schema(
             {
@@ -274,9 +290,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_sensors_create(self, user_input: dict[str, Any] | None = None) -> Any:
         """Handle sensor type selection step."""
+        # Default observations to False if no observation station available
+        observations_default = getattr(self, 'has_observations', True)
+
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_OBSERVATIONS_CREATE, default=True): bool,
+                vol.Required(CONF_OBSERVATIONS_CREATE, default=observations_default): bool,
                 vol.Required(CONF_FORECASTS_CREATE, default=True): bool,
                 vol.Required(CONF_WARNINGS_CREATE, default=True): bool,
             }
