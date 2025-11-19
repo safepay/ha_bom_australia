@@ -56,6 +56,10 @@ Individual binary sensors for different warning types (matching BOM API):
 - Marine Wind Warning
 - Hazardous Surf Warning
 - Heatwave Warning
+- Frost Warning
+- Bushwalkers Alert
+- Fire Weather Warning
+- Tropical Cyclone Warning
 
 Each binary sensor includes:
 - On/off state based on active warnings (excludes only cancelled warnings)
@@ -105,7 +109,9 @@ After you have installed the custom component (see above):
 4. Enter your location:
    - **Default**: Latitude and longitude fields are pre-populated with your Home Assistant's location - just click through to use your current location
    - **Alternative**: Check "Use Australian postcode instead?" and enter a postcode (e.g., 3000 for Melbourne) to set up sensors for a different location
-5. The integration will display the nearest weather station and observation station being used
+   - If multiple locations are found for the postcode, select your specific town from the dropdown
+5. The integration will display the nearest weather location and observation station being used
+   - **Note**: Some remote locations only have forecast and warning data available (no observation station)
 6. Configure which entities you want to create (weather, observations, forecasts, warnings)
 7. Click `Submit` to add the integration.
 
@@ -116,7 +122,7 @@ The integration supports Australian postcode lookup for easier configuration. Th
 - You don't know the exact coordinates but know the postcode
 - You want to quickly add a location without looking up coordinates
 
-**Note**: On first use, `pgeocode` will download a small Australian postcode database from GeoNames.org (~2MB, one-time). This requires internet access and may take a moment.
+When you enter a postcode, the integration queries the BOM API to find all locations within that postcode. If multiple towns are found (common in rural areas), you'll be presented with a dropdown to select your specific town or locality. This ensures you get the correct weather data and warnings for your exact location, as warning zones can vary within a single postcode.
 
 ## Troubleshooting
 

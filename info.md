@@ -14,8 +14,8 @@ A comprehensive weather entity that combines both daily and hourly forecasts in 
 - Additional attributes: UV index, sunrise/sunset, fire danger, feels like temperature, dew point, station information
 
 ### 2. Binary Sensors (Warnings)
-Individual binary sensors for different warning types:
-- Flood, Severe Thunderstorm, Severe Weather, Fire, Tropical Cyclone, Storm, Wind, Sheep Graziers, Heat, Tsunami, Marine warnings
+Individual binary sensors for different warning types (matching BOM API):
+- Flood Watch, Flood Warning, Sheep Graziers Warning, Severe Thunderstorm Warning, Severe Weather Warning, Marine Wind Warning, Hazardous Surf Warning, Heatwave Warning, Frost Warning, Bushwalkers Alert, Fire Weather Warning, Tropical Cyclone Warning
 - Each sensor includes on/off state, severity information, issue/expiry times, and detailed warning data
 
 ### 3. Sensors (Observations & Forecasts)
@@ -32,9 +32,10 @@ Regular sensors for:
 4. Go to Configuration -> Integrations
 5. Click "+ Add Integration"
 6. Search for "BOM Australia"
-7. Enter your latitude and longitude
-8. The integration will automatically find the nearest BOM weather station
-9. Configure which entities you want to create
+7. Enter your location (coordinates or Australian postcode)
+8. If using postcode with multiple towns, select your specific location
+9. The integration will find the nearest BOM weather location and observation station (if available)
+10. Configure which entities you want to create
 
 **Note:** This integration uses a different directory name (`ha_bom_australia`) and entity prefix (`bom_`) to avoid conflicts with the original Bureau of Meteorology integration.
 
