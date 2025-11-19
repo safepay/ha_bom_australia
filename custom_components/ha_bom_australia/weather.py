@@ -86,33 +86,45 @@ class WeatherBase(WeatherEntity):
         self._update_callback()
 
     async def async_forecast_daily(self) -> list[Forecast]:
+        """Return the daily forecast."""
+        if not self.collector.daily_forecasts_data or "data" not in self.collector.daily_forecasts_data:
+            return []
+        if not self.collector.locations_data or "data" not in self.collector.locations_data:
+            return []
+
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
                 datetime=iso8601.parse_date(data["date"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
-                native_temperature=data["temp_max"],
-                condition=MAP_CONDITION[data["icon_descriptor"]],
-                templow=data["temp_min"],
-                native_precipitation=data["rain_amount_max"],
-                precipitation_probability=data["rain_chance"],
+                native_temperature=data.get("temp_max"),
+                condition=MAP_CONDITION.get(data.get("icon_descriptor")),
+                templow=data.get("temp_min"),
+                native_precipitation=data.get("rain_amount_max"),
+                precipitation_probability=data.get("rain_chance"),
             )
             for data in self.collector.daily_forecasts_data["data"]
         ]
 
     async def async_forecast_hourly(self) -> list[Forecast]:
+        """Return the hourly forecast."""
+        if not self.collector.hourly_forecasts_data or "data" not in self.collector.hourly_forecasts_data:
+            return []
+        if not self.collector.locations_data or "data" not in self.collector.locations_data:
+            return []
+
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
                 datetime=iso8601.parse_date(data["time"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
-                native_temperature=data["temp"],
-                condition=MAP_CONDITION[data["icon_descriptor"]],
-                native_precipitation=data["rain_amount_max"],
-                precipitation_probability=data["rain_chance"],
-                wind_bearing=data["wind_direction"],
-                native_wind_speed=data["wind_speed_kilometre"],
-                wind_gust_speed=data["wind_gust_speed_kilometre"],
-                humidity=data["relative_humidity"],
-                uv_index=data["uv"],
+                native_temperature=data.get("temp"),
+                condition=MAP_CONDITION.get(data.get("icon_descriptor")),
+                native_precipitation=data.get("rain_amount_max"),
+                precipitation_probability=data.get("rain_chance"),
+                wind_bearing=data.get("wind_direction"),
+                native_wind_speed=data.get("wind_speed_kilometre"),
+                wind_gust_speed=data.get("wind_gust_speed_kilometre"),
+                humidity=data.get("relative_humidity"),
+                uv_index=data.get("uv"),
             )
             for data in self.collector.hourly_forecasts_data["data"]
         ]
@@ -135,12 +147,17 @@ class WeatherBase(WeatherEntity):
     @property
     def native_temperature(self) -> float | None:
         """Return the platform temperature."""
-        return self.collector.observations_data["data"]["temp"]
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("temp")
+        return None
 
     @property
     def icon(self) -> str | None:
         """Return the icon."""
-        return self.collector.daily_forecasts_data["data"][0]["mdi_icon"]
+        if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+            if len(self.collector.daily_forecasts_data["data"]) > 0:
+                return self.collector.daily_forecasts_data["data"][0].get("mdi_icon")
+        return None
 
     @property
     def native_temperature_unit(self) -> str:
@@ -150,12 +167,16 @@ class WeatherBase(WeatherEntity):
     @property
     def humidity(self) -> float | None:
         """Return the humidity."""
-        return self.collector.observations_data["data"]["humidity"]
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("humidity")
+        return None
 
     @property
     def native_wind_speed(self) -> float | None:
         """Return the wind speed."""
-        return self.collector.observations_data["data"]["wind_speed_kilometre"]
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("wind_speed_kilometre")
+        return None
 
     @property
     def native_wind_speed_unit(self) -> str:
@@ -165,22 +186,30 @@ class WeatherBase(WeatherEntity):
     @property
     def wind_bearing(self) -> float | None:
         """Return the wind bearing."""
-        return self.collector.observations_data["data"]["wind_direction"]
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("wind_direction")
+        return None
 
     @property
     def native_wind_gust_speed(self) -> float | None:
         """Return the wind gust speed."""
-        return self.collector.observations_data["data"].get("gust_speed_kilometre")
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("gust_speed_kilometre")
+        return None
 
     @property
     def native_apparent_temperature(self) -> float | None:
         """Return the apparent temperature (feels like)."""
-        return self.collector.observations_data["data"].get("temp_feels_like")
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("temp_feels_like")
+        return None
 
     @property
     def native_dew_point(self) -> float | None:
         """Return the dew point."""
-        return self.collector.observations_data["data"].get("dew_point")
+        if self.collector.observations_data and "data" in self.collector.observations_data:
+            return self.collector.observations_data["data"].get("dew_point")
+        return None
 
     @property
     def uv_index(self) -> float | None:
@@ -198,9 +227,12 @@ class WeatherBase(WeatherEntity):
     @property
     def condition(self) -> str | None:
         """Return the current condition."""
-        return MAP_CONDITION[
-            self.collector.daily_forecasts_data["data"][0]["icon_descriptor"]
-        ]
+        if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+            if len(self.collector.daily_forecasts_data["data"]) > 0:
+                icon_descriptor = self.collector.daily_forecasts_data["data"][0].get("icon_descriptor")
+                if icon_descriptor and icon_descriptor in MAP_CONDITION:
+                    return MAP_CONDITION[icon_descriptor]
+        return None
 
     async def async_update(self) -> None:
         """Update the weather data."""
@@ -238,8 +270,10 @@ class BomWeather(WeatherBase):
             # Add station data
             if self.collector.observations_data and "data" in self.collector.observations_data:
                 obs_data = self.collector.observations_data["data"]
-                attrs["station_name"] = obs_data.get("station", {}).get("name")
-                attrs["station_id"] = obs_data.get("station", {}).get("bom_id")
+                station = obs_data.get("station")
+                if station:
+                    attrs["station_name"] = station.get("name")
+                    attrs["station_id"] = station.get("bom_id")
 
             # Add today's forecast data (supplementary information not in standard weather properties)
             if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
