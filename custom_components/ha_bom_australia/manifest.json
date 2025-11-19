@@ -5,7 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/safepay/ha_bom_australia",
   "issue_tracker": "https://github.com/safepay/ha_bom_australia/issues",
-  "requirements": ["iso8601", "pgeocode"],
+  "requirements": ["iso8601"],
   "icon": "mdi:weather-partly-cloudy",
   "ssdp": [],
   "zeroconf": [],
