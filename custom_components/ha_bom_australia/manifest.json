@@ -4,7 +4,6 @@
   "codeowners": ["@safepay"],
   "config_flow": true,
   "documentation": "https://github.com/safepay/ha_bom_australia",
-  "icon": "mdi:weather-partly-cloudy",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/safepay/ha_bom_australia/issues",
