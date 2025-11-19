@@ -5,9 +5,12 @@ This folder contains documentation for the Bureau of Meteorology's undocumented 
 All APIs return JSON data. Location selection uses geohashes for precision targeting.
 
 **Geohash Requirements:**
-- **Hourly forecasts:** Requires 6-character geohash (7-char returns error)
-- **Daily forecasts, warnings, observations:** Accept both 6 or 7-character geohash
-- **Recommendation:** Use 6-character geohash for all endpoints as the common denominator
+- **Observations:** Requires **exactly 6-character geohash** (returns 400 error if not 6 chars)
+- **Hourly forecasts:** Requires **exactly 6-character geohash** (returns 400 error if not 6 chars)
+- **Daily forecasts, warnings:** Accept both 6 or 7-character geohash
+- **Location search (coordinates):** Returns 7-character geohash
+- **Location search (postcode):** Returns 7-character geohash
+- **Critical:** When using geohashes from location search, **truncate to 6 characters** before querying observations or hourly forecasts
 
 ## Location Search
 
@@ -79,7 +82,9 @@ Search for all locations within a specific Australian postcode. Returns multiple
 }
 ```
 
-**Note:** Each location within a postcode has its own unique geohash, which may result in different weather data and warnings. This is particularly important for warnings, as a single postcode can span multiple warning zones. Always select the specific town/location rather than relying on postcode-level geocoding.
+**Important Notes:**
+- **Geohash Length:** Postcode search returns **7-character geohashes**. However, observations and hourly forecast endpoints require **exactly 6 characters**. You must truncate the geohash to 6 chars (e.g., `r74n52x` → `r74n52`) when querying those endpoints.
+- **Warning Zones:** Each location within a postcode has its own unique geohash, which may result in different weather data and warnings. This is particularly important for warnings, as a single postcode can span multiple warning zones. Always select the specific town/location rather than relying on postcode-level geocoding.
 
 ## Location Info
 
