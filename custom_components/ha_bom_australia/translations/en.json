@@ -20,7 +20,7 @@
       },
       "weather_name": {
         "title": "Configure Entity Prefix",
-        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix '{default_prefix}':\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
+        "description": "Nearest BOM location: {location_name}\nObservation station: {station_name} (ID: {station_id})\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix {default_prefix}:\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
         "data": {
           "entity_prefix": "Entity Prefix (used for all BOM entities)"
         }
@@ -134,7 +134,7 @@
       },
       "weather_name": {
         "title": "Configure Entity Prefix",
-        "description": "Nearest BOM location: {location_name}\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix '{default_prefix}':\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
+        "description": "Nearest BOM location: {location_name}\n\nChoose a prefix for all your BOM entities (weather, sensors, and warnings).\nExample with prefix {default_prefix}:\n  • weather.{default_prefix}\n  • sensor.{default_prefix}_temp\n  • binary_sensor.{default_prefix}_warning_flood",
         "data": {
           "entity_prefix": "Entity Prefix (used for all BOM entities)"
         }
