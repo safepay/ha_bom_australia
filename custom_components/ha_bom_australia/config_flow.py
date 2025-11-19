@@ -226,6 +226,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Populate observations and daily forecasts data
             await self.collector.async_update()
 
+            # Debug: Check what we got
+            _LOGGER.info(f"Postcode flow - Location: {location['name']}, Geohash: {geohash}")
+            _LOGGER.info(f"Observations available: {self.collector.observations_data is not None}")
+            if self.collector.observations_data and "data" in self.collector.observations_data:
+                station = self.collector.observations_data["data"].get("station")
+                _LOGGER.info(f"Station data: {station}")
+
         # Get location information from BOM API
         location_name = self.collector.locations_data["data"]["name"]
 
@@ -236,16 +243,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         description_placeholders = {
             "location_name": location_name,
             "default_prefix": default_prefix,
+            "station_name": "Unknown",
+            "station_id": "Unknown",
         }
 
         # Try to get station name from observations if available
         if self.collector.observations_data and "data" in self.collector.observations_data:
             station_data = self.collector.observations_data["data"].get("station", {})
             if station_data:
-                station_name = station_data.get("name", "Unknown")
-                station_id = station_data.get("bom_id", "Unknown")
-                description_placeholders["station_name"] = station_name
-                description_placeholders["station_id"] = station_id
+                description_placeholders["station_name"] = station_data.get("name", "Unknown")
+                description_placeholders["station_id"] = station_data.get("bom_id", "Unknown")
 
         data_schema = vol.Schema(
             {
