@@ -318,7 +318,6 @@ The following table shows all known BOM warning types and their support status i
 | Warning Type | Status | Display Name |
 |--------------|--------|--------------|
 | `bushwalkers_alert` | ✅ Supported | Bushwalkers Alert |
-| `coastal_hazard_warning` | ❌ Not Supported | Coastal Hazard Warning |
 | `fire_weather_warning` | ✅ Supported | Fire Weather Warning |
 | `flood_watch` | ✅ Supported | Flood Watch |
 | `flood_warning` | ✅ Supported | Flood Warning |
@@ -326,18 +325,19 @@ The following table shows all known BOM warning types and their support status i
 | `hazardous_surf_warning` | ✅ Supported | Hazardous Surf Warning |
 | `heatwave_warning` | ✅ Supported | Heatwave Warning |
 | `marine_wind_warning` | ✅ Supported | Marine Wind Warning |
+| `severe_thunderstorm_warning` | ✅ Supported | Severe Thunderstorm Warning |
+| `severe_weather_warning` | ✅ Supported | Severe Weather Warning |
+| `sheep_graziers_warning` | ✅ Supported | Sheep Graziers Warning |
+| `tropical_cyclone_warning` | ✅ Supported | Tropical Cyclone Warning |
+| `squall_warning` | ❌ Not Supported | Squall Warning |
+| `road_weather_alert` | ❌ Not Supported | Road Weather Alert |
+| `coastal_hazard_warning` | ❌ Not Supported | Coastal Hazard Warning |
+| `ocean_wind_warning` | ❌ Not Supported | Ocean Wind Warning |
+| `state_territory_tsunami_bulletin` | ❌ Not Supported | State/Territory Tsunami Bulletin |
 | `national_tsunami_event_summary` | ❌ Not Supported | National Tsunami Event Summary |
 | `national_tsunami_no_threat` | ❌ Not Supported | National Tsunami No Threat |
 | `national_tsunami_warning_summary` | ❌ Not Supported | National Tsunami Warning Summary |
 | `national_tsunami_watch` | ❌ Not Supported | National Tsunami Watch |
-| `ocean_wind_warning` | ❌ Not Supported | Ocean Wind Warning |
-| `road_weather_alert` | ❌ Not Supported | Road Weather Alert |
-| `severe_thunderstorm_warning` | ✅ Supported | Severe Thunderstorm Warning |
-| `severe_weather_warning` | ✅ Supported | Severe Weather Warning |
-| `sheep_graziers_warning` | ✅ Supported | Sheep Graziers Warning |
-| `squall_warning` | ❌ Not Supported | Squall Warning |
-| `state_territory_tsunami_bulletin` | ❌ Not Supported | State/Territory Tsunami Bulletin |
-| `tropical_cyclone_warning` | ✅ Supported | Tropical Cyclone Warning |
 
 **Notes:**
 - Unsupported warning types will still appear in the main warnings sensor but will not have dedicated binary sensors.
