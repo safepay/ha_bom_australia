@@ -359,6 +359,12 @@ class ForecastSensor(SensorBase):
                         f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
                     )
             new_state = self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
+
+            # For temp_min and temp_max, preserve existing value if API returns null
+            if self.sensor_name in ("temp_min", "temp_max") and new_state is None:
+                # Return existing state if we have one, otherwise None
+                return self.current_state if self.current_state is not None else None
+
             if isinstance(new_state, str) and len(new_state) > MAX_STATE_LENGTH:
                 self.current_state = new_state[:MAX_STATE_LENGTH] + "..."
             else:
