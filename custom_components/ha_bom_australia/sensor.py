@@ -17,6 +17,7 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from zoneinfo import ZoneInfo
@@ -284,13 +285,32 @@ class ObservationSensor(SensorBase):
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
-class ForecastSensor(SensorBase):
+class ForecastSensor(SensorBase, RestoreEntity):
     """Representation of a BOM Forecast Sensor."""
 
     def __init__(self, hass_data, location_name, entity_prefix, day, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
         self.day = day
         super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
+
+    async def async_added_to_hass(self) -> None:
+        """Restore previous state for temperature sensors."""
+        await super().async_added_to_hass()
+
+        # For temp_min and temp_max sensors, restore previous state if available
+        if self.sensor_name in ("temp_min", "temp_max"):
+            last_state = await self.async_get_last_state()
+            if last_state is not None and last_state.state not in (None, "unknown", "unavailable"):
+                try:
+                    # Try to convert to float to ensure it's a valid temperature
+                    self.current_state = float(last_state.state)
+                    _LOGGER.debug(
+                        f"Restored previous state for {self.name}: {self.current_state}"
+                    )
+                except (ValueError, TypeError):
+                    _LOGGER.debug(
+                        f"Could not restore state for {self.name}: invalid value {last_state.state}"
+                    )
 
     @property
     def unique_id(self) -> str:
