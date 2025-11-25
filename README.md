@@ -9,6 +9,9 @@
 
 This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http://www.bom.gov.au) as a source for weather information.
 
+The BoM API is not meant to be accessed via 3rd parties.
+For a fully supported, albeit not free API, use my [WillyWeather](https://github.com/safepay/willyweather-forecast-home-assistant) integration.
+
 ## Installation
 
 **Note:** This is NOT a HACS default integration. You must add it as a custom repository.
