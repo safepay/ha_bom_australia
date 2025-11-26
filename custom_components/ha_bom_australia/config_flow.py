@@ -227,7 +227,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.has_observations = True
 
         # Get location information from BOM API
-        location_name = self.collector.locations_data["data"]["name"]
+        # Use postcode_location name if coming from postcode flow, otherwise use collector's location name
+        if hasattr(self, 'postcode_location'):
+            location_name = self.postcode_location["name"]
+        else:
+            location_name = self.collector.locations_data["data"]["name"]
 
         # Generate default entity prefix from location name
         default_prefix = f"BoM_{location_name.lower().replace(' ', '_').replace('-', '_')}"
@@ -634,7 +638,11 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             await self.collector.async_update()
 
         # Get location information from BOM API
-        location_name = self.collector.locations_data["data"]["name"]
+        # Use postcode_location name if coming from postcode flow, otherwise use collector's location name
+        if hasattr(self, 'postcode_location'):
+            location_name = self.postcode_location["name"]
+        else:
+            location_name = self.collector.locations_data["data"]["name"]
         default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         # Build description with station information
