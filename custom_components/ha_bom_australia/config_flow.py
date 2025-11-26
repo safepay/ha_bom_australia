@@ -233,6 +233,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             location_name = self.collector.locations_data["data"]["name"]
 
+        # Store location_name for use in async_create_entry
+        self.location_name = location_name
+
         # Generate default entity prefix from location name
         default_prefix = f"BoM_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
@@ -320,7 +323,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_warnings_monitored()
                 else:
                     return self.async_create_entry(
-                        title=self.collector.locations_data["data"]["name"],
+                        title=self.location_name,
                         data=self.data,
                     )
 
@@ -359,7 +362,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
-                        title=self.collector.locations_data["data"]["name"],
+                        title=self.location_name,
                         data=self.data,
                     )
 
@@ -404,7 +407,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 # Forecasts is the last step
                 return self.async_create_entry(
-                    title=self.collector.locations_data["data"]["name"], data=self.data
+                    title=self.location_name, data=self.data
                 )
 
             except CannotConnect:
@@ -438,7 +441,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 return self.async_create_entry(
-                    title=self.collector.locations_data["data"]["name"], data=self.data
+                    title=self.location_name, data=self.data
                 )
             except CannotConnect:
                 errors["base"] = "cannot_connect"
@@ -643,6 +646,10 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             location_name = self.postcode_location["name"]
         else:
             location_name = self.collector.locations_data["data"]["name"]
+
+        # Store location_name for use in async_create_entry
+        self.location_name = location_name
+
         default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         # Build description with station information
@@ -733,7 +740,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                     return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
-                        title=self.collector.locations_data["data"]["name"],
+                        title=self.location_name,
                         data=self.data,
                     )
 
@@ -779,7 +786,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                     return await self.async_step_forecasts_monitored()
                 else:
                     return self.async_create_entry(
-                        title=self.collector.locations_data["data"]["name"],
+                        title=self.location_name,
                         data=self.data,
                     )
 
@@ -837,7 +844,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
 
                 # Forecasts is the last step
                 return self.async_create_entry(
-                    title=self.collector.locations_data["data"]["name"], data=self.data
+                    title=self.location_name, data=self.data
                 )
 
             except CannotConnect:
@@ -878,7 +885,7 @@ class BomOptionsFlow(config_entries.OptionsFlow):
                 if self.data[CONF_FORECASTS_CREATE]:
                     return await self.async_step_forecasts_monitored()
                 return self.async_create_entry(
-                    title=self.collector.locations_data["data"]["name"], data=self.data
+                    title=self.location_name, data=self.data
                 )
             except CannotConnect:
                 errors["base"] = "cannot_connect"
