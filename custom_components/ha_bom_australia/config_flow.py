@@ -641,16 +641,26 @@ class BomOptionsFlow(config_entries.OptionsFlow):
             await self.collector.async_update()
 
         # Get location information from BOM API
-        # Use postcode_location name if coming from postcode flow, otherwise use collector's location name
+        # Use postcode_location name if coming from postcode flow
+        # Otherwise, preserve existing location name from config entry
         if hasattr(self, 'postcode_location'):
             location_name = self.postcode_location["name"]
         else:
-            location_name = self.collector.locations_data["data"]["name"]
+            # Preserve existing location name - don't overwrite with collector's name
+            location_name = self.config_entry.options.get(
+                CONF_WEATHER_NAME,
+                self.config_entry.data.get(CONF_WEATHER_NAME, "Unknown")
+            )
 
         # Store location_name for use in async_create_entry
         self.location_name = location_name
 
-        default_prefix = f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
+        # Get existing entity prefix, or generate default from location name
+        existing_prefix = self.config_entry.options.get(
+            CONF_ENTITY_PREFIX,
+            self.config_entry.data.get(CONF_ENTITY_PREFIX)
+        )
+        default_prefix = existing_prefix if existing_prefix else f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
 
         # Build description with station information
         description_placeholders = {
@@ -676,9 +686,9 @@ class BomOptionsFlow(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None:
             try:
-                # Save the entity prefix and use location name from API
+                # Save the entity prefix and location name
                 self.data[CONF_ENTITY_PREFIX] = user_input[CONF_ENTITY_PREFIX]
-                self.data[CONF_WEATHER_NAME] = location_name  # Use API location name
+                self.data[CONF_WEATHER_NAME] = location_name  # Preserve existing or use new from postcode search
 
                 return await self.async_step_sensors_create()
 
