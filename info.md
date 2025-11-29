@@ -1,6 +1,14 @@
 # BOM Australia
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![GitHub Release][releases-shield]][releases]
+[![License][license-shield]](LICENSE.md)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.9.0+-blue.svg?style=for-the-badge)](https://www.home-assistant.io/)
+![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
+
+[license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg?style=for-the-badge
+[releases]: https://github.com/safepay/ha_bom_australia/releases
 
 This Home Assistant custom component uses the [Bureau of Meteorology (BOM)](http://www.bom.gov.au) as a source for weather information for locations within Australia.
 
