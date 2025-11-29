@@ -3,6 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE.md)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.9.0+-blue.svg?style=for-the-badge)](https://www.home-assistant.io/)
 ![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
 
 ### **This integration only supports locations within Australia.**
