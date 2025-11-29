@@ -1,10 +1,10 @@
 # Home Assistant BoM Custom Component
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub Release][releases-shield]][releases]
 [![License][license-shield]](LICENSE.md)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.9.0+-blue.svg?style=for-the-badge)](https://www.home-assistant.io/)
-![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2023.9.0+-blue.svg)](https://www.home-assistant.io/)
+![Maintenance](https://img.shields.io/maintenance/yes/2025)
 
 ### **This integration only supports locations within Australia.**
 
@@ -165,7 +165,7 @@ This is a refactored version of the original [Bureau of Meteorology integration]
 - Original integration by [@bremor](https://github.com/bremor) and [@makin-things](https://github.com/makin-things)
 
 [hacs]: https://hacs.xyz
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg?style=for-the-badge
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[license-shield]: https://img.shields.io/github/license/safepay/ha_bom_australia.svg
+[releases-shield]: https://img.shields.io/github/release/safepay/ha_bom_australia.svg
 [releases]: https://github.com/safepay/ha_bom_australia/releases
