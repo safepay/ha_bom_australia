@@ -20,6 +20,7 @@ from . import BomDataUpdateCoordinator
 from .const import (
     ATTRIBUTION,
     COLLECTOR,
+    CONDITION_FRIENDLY,
     CONF_ENTITY_PREFIX,
     CONF_WEATHER_NAME,
     COORDINATOR,
@@ -291,6 +292,13 @@ class BomWeather(WeatherBase):
                     attrs["now_temp"] = today.get("temp_now")
                     attrs["later_label"] = today.get("later_label")
                     attrs["later_temp"] = today.get("temp_later")
+
+                    # Add human-friendly condition text
+                    icon_descriptor = today.get("icon_descriptor")
+                    if icon_descriptor and icon_descriptor in MAP_CONDITION:
+                        ha_condition = MAP_CONDITION[icon_descriptor]
+                        if ha_condition and ha_condition in CONDITION_FRIENDLY:
+                            attrs["condition_text"] = CONDITION_FRIENDLY[ha_condition]
 
             # Add warning count
             if self.collector.warnings_data and "data" in self.collector.warnings_data:
