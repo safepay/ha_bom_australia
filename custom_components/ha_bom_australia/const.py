@@ -67,6 +67,26 @@ MAP_CONDITION: Final = {
     None: None,
 }
 
+# Human-friendly weather condition text mapping from HA weather condition codes
+CONDITION_FRIENDLY: Final = {
+    "clear-night": "Clear",
+    "cloudy": "Cloudy",
+    "exceptional": "Exceptional",
+    "fog": "Foggy",
+    "lightning": "Lightning",
+    "lightning-rainy": "Stormy",
+    "partlycloudy": "Partly cloudy",
+    "pouring": "Pouring",
+    "rainy": "Rainy",
+    "snowy": "Snowy",
+    "snowy-rainy": "Snowy rainy",
+    "sunny": "Sunny",
+    "windy": "Windy",
+    "windy-variant": "Windy",
+    "hail": "Hail",
+    None: None,
+}
+
 ATTR_API_TEMP: Final = "temp"
 ATTR_API_TEMP_FEELS_LIKE: Final = "temp_feels_like"
 ATTR_API_MAX_TEMP: Final = "max_temp"
@@ -79,6 +99,7 @@ ATTR_API_WIND_DIRECTION: Final = "wind_direction"
 ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
+ATTR_API_CONDITION: Final = "condition"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -106,17 +127,43 @@ ATTR_API_WARNINGS: Final = "warnings"
 
 OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
-        key=ATTR_API_TEMP,
-        name="Current Temperature",
+        key=ATTR_API_CONDITION,
+        name="Condition",
+        icon="mdi:weather-partly-cloudy",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_DELTA_T,
+        name="Delta T",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
-        key=ATTR_API_TEMP_FEELS_LIKE,
-        name="Current Feels Like Temperature",
+        key="dew_point",
+        name="Dew Point",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_GUST_SPEED_KILOMETRE,
+        name="Gust Speed km/h",
+        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+        device_class=SensorDeviceClass.WIND_SPEED,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_GUST_SPEED_KNOT,
+        name="Gust Speed kn",
+        native_unit_of_measurement=UnitOfSpeed.KNOTS,
+        device_class=SensorDeviceClass.WIND_SPEED,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_HUMIDITY,
+        name="Humidity",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -141,11 +188,23 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     SensorEntityDescription(
-        key=ATTR_API_HUMIDITY,
-        name="Humidity",
-        native_unit_of_measurement=PERCENTAGE,
-        device_class=SensorDeviceClass.HUMIDITY,
+        key=ATTR_API_TEMP,
+        name="Current Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_TEMP_FEELS_LIKE,
+        name="Current Feels Like Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_WIND_DIRECTION,
+        name="Wind Direction",
+        icon="mdi:compass",
     ),
     SensorEntityDescription(
         key=ATTR_API_WIND_SPEED_KILOMETRE,
@@ -159,39 +218,6 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Wind Speed kn",
         native_unit_of_measurement=UnitOfSpeed.KNOTS,
         device_class=SensorDeviceClass.WIND_SPEED,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_WIND_DIRECTION,
-        name="Wind Direction",
-        icon="mdi:compass",
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_GUST_SPEED_KILOMETRE,
-        name="Gust Speed km/h",
-        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
-        device_class=SensorDeviceClass.WIND_SPEED,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_GUST_SPEED_KNOT,
-        name="Gust Speed kn",
-        native_unit_of_measurement=UnitOfSpeed.KNOTS,
-        device_class=SensorDeviceClass.WIND_SPEED,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="dew_point",
-        name="Dew Point",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_DELTA_T,
-        name="Delta T",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 )

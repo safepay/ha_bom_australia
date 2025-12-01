@@ -42,6 +42,9 @@ from .const import (
     ATTR_API_TEMP_NOW,
     ATTR_API_LATER_LABEL,
     ATTR_API_TEMP_LATER,
+    ATTR_API_CONDITION,
+    MAP_CONDITION,
+    CONDITION_FRIENDLY,
 )
 from .PyBoM.collector import Collector
 
@@ -227,6 +230,9 @@ class ObservationSensor(SensorBase):
     @property
     def native_value(self) -> Any:
         """Return the state of the device."""
+        # For condition sensor, use the computed state value
+        if self.sensor_name == ATTR_API_CONDITION:
+            return self.state
         return self.coordinator.data.get(self.entity_description.key)
 
     @property
@@ -270,6 +276,18 @@ class ObservationSensor(SensorBase):
     @property
     def state(self) -> Any:
         """Return the state of the sensor."""
+        # Special handling for condition sensor
+        if self.sensor_name == ATTR_API_CONDITION:
+            if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+                if len(self.collector.daily_forecasts_data["data"]) > 0:
+                    icon_descriptor = self.collector.daily_forecasts_data["data"][0].get("icon_descriptor")
+                    if icon_descriptor and icon_descriptor in MAP_CONDITION:
+                        ha_condition = MAP_CONDITION[icon_descriptor]
+                        if ha_condition and ha_condition in CONDITION_FRIENDLY:
+                            return CONDITION_FRIENDLY[ha_condition]
+            return None
+
+        # Standard observation sensor handling
         if self.sensor_name in self.collector.observations_data["data"]:
             if self.collector.observations_data["data"][self.sensor_name] is not None:
                 if self.sensor_name == "max_temp" or self.sensor_name == "min_temp":
