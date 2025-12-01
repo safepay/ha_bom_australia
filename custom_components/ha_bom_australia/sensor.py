@@ -384,6 +384,9 @@ class ForecastSensor(SensorBase):
                 self.current_state = new_state
             if (self.sensor_name == "uv_category") and (self.current_state is not None):
                 self.current_state = self.current_state.replace("veryhigh", "very high").title()
+            # Strip trailing period from short_text for cleaner display
+            if (self.sensor_name == "short_text") and isinstance(self.current_state, str) and self.current_state.endswith("."):
+                self.current_state = self.current_state.rstrip(".")
             return self.current_state
         else:
             return None
