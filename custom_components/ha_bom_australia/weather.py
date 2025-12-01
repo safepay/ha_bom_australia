@@ -287,7 +287,6 @@ class BomWeather(WeatherBase):
                     attrs["sunrise"] = today.get("astronomical_sunrise_time")
                     attrs["sunset"] = today.get("astronomical_sunset_time")
                     attrs["extended_text"] = today.get("extended_text")
-                    attrs["short_text"] = today.get("short_text")
                     attrs["now_label"] = today.get("now_label")
                     attrs["now_temp"] = today.get("temp_now")
                     attrs["later_label"] = today.get("later_label")
