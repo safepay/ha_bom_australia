@@ -67,6 +67,26 @@ MAP_CONDITION: Final = {
     None: None,
 }
 
+# Human-friendly weather condition text mapping from HA weather condition codes
+CONDITION_FRIENDLY: Final = {
+    "clear-night": "Clear",
+    "cloudy": "Cloudy",
+    "exceptional": "Exceptional",
+    "fog": "Foggy",
+    "lightning": "Lightning",
+    "lightning-rainy": "Stormy",
+    "partlycloudy": "Partly cloudy",
+    "pouring": "Pouring",
+    "rainy": "Rainy",
+    "snowy": "Snowy",
+    "snowy-rainy": "Snowy rainy",
+    "sunny": "Sunny",
+    "windy": "Windy",
+    "windy-variant": "Windy",
+    "hail": "Hail",
+    None: None,
+}
+
 ATTR_API_TEMP: Final = "temp"
 ATTR_API_TEMP_FEELS_LIKE: Final = "temp_feels_like"
 ATTR_API_MAX_TEMP: Final = "max_temp"
@@ -79,6 +99,7 @@ ATTR_API_WIND_DIRECTION: Final = "wind_direction"
 ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
+ATTR_API_CONDITION: Final = "condition"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -193,6 +214,11 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_CONDITION,
+        name="Condition",
+        icon="mdi:weather-partly-cloudy",
     ),
 )
 
