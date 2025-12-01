@@ -262,32 +262,6 @@ class Collector:
                     session, URL_BASE + self.geohash + URL_DAILY, "daily_forecasts"
                 )
                 if data:
-                    # Preserve temp_min and temp_max for today if API returns null
-                    # (BOM API returns null for today's min temp after ~4pm)
-                    if (
-                        self.daily_forecasts_data
-                        and "data" in self.daily_forecasts_data
-                        and len(self.daily_forecasts_data["data"]) > 0
-                        and "data" in data
-                        and len(data["data"]) > 0
-                    ):
-                        old_today = self.daily_forecasts_data["data"][0]
-                        new_today = data["data"][0]
-
-                        # Preserve temp_min if new value is null but old value exists
-                        if new_today.get("temp_min") is None and old_today.get("temp_min") is not None:
-                            new_today["temp_min"] = old_today["temp_min"]
-                            _LOGGER.debug(
-                                f"Preserved temp_min value {old_today['temp_min']} (API returned null)"
-                            )
-
-                        # Preserve temp_max if new value is null but old value exists
-                        if new_today.get("temp_max") is None and old_today.get("temp_max") is not None:
-                            new_today["temp_max"] = old_today["temp_max"]
-                            _LOGGER.debug(
-                                f"Preserved temp_max value {old_today['temp_max']} (API returned null)"
-                            )
-
                     self.daily_forecasts_data = data
                     await self.format_daily_forecast_data()
 
