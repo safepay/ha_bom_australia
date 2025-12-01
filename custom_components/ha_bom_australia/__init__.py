@@ -14,6 +14,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import debounce
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
@@ -78,6 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady from ex
 
     coordinator = BomDataUpdateCoordinator(hass=hass, collector=collector)
+    await coordinator.async_load_temps()
     await coordinator.async_refresh()
 
     hass_data = hass.data.setdefault(DOMAIN, {})
@@ -187,11 +189,14 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, collector: Collector) -> None:
         """Initialise the data update coordinator."""
         self.collector = collector
+        self._store = Store(hass, version=1, key=f"{DOMAIN}.{collector.geohash}.temps")
+        self._last_valid_temps: dict[str, float | None] = {}
+
         super().__init__(
             hass=hass,
             logger=_LOGGER,
             name=DOMAIN,
-            update_method=self.collector.async_update,
+            update_method=self._async_update_with_persistence,
             update_interval=DEFAULT_SCAN_INTERVAL,
             request_refresh_debouncer=debounce.Debouncer(
                 hass, _LOGGER, cooldown=DEBOUNCE_TIME, immediate=True
@@ -201,6 +206,60 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
         self.entity_registry_updated_unsub = self.hass.bus.async_listen(
             er.EVENT_ENTITY_REGISTRY_UPDATED, self.entity_registry_updated
         )
+
+    async def async_load_temps(self) -> None:
+        """Load last valid temperature values from storage."""
+        data = await self._store.async_load()
+        if data:
+            self._last_valid_temps = data
+            _LOGGER.debug("Loaded saved temperatures: %s", self._last_valid_temps)
+
+    async def async_save_temps(self) -> None:
+        """Save last valid temperature values to storage."""
+        await self._store.async_save(self._last_valid_temps)
+
+    async def _async_update_with_persistence(self) -> None:
+        """Update data and handle temperature persistence."""
+        # Call the original update method
+        await self.collector.async_update()
+
+        # After update, handle temperature persistence for today's forecast
+        if (
+            self.collector.daily_forecasts_data
+            and "data" in self.collector.daily_forecasts_data
+            and len(self.collector.daily_forecasts_data["data"]) > 0
+        ):
+            today = self.collector.daily_forecasts_data["data"][0]
+            temps_changed = False
+
+            # If API returned null but we have saved values, use them
+            if today.get("temp_min") is None and self._last_valid_temps.get("temp_min") is not None:
+                today["temp_min"] = self._last_valid_temps["temp_min"]
+                _LOGGER.debug(
+                    "Restored temp_min from storage: %s", self._last_valid_temps["temp_min"]
+                )
+
+            if today.get("temp_max") is None and self._last_valid_temps.get("temp_max") is not None:
+                today["temp_max"] = self._last_valid_temps["temp_max"]
+                _LOGGER.debug(
+                    "Restored temp_max from storage: %s", self._last_valid_temps["temp_max"]
+                )
+
+            # Save valid temp values for future use
+            if today.get("temp_min") is not None:
+                if self._last_valid_temps.get("temp_min") != today["temp_min"]:
+                    self._last_valid_temps["temp_min"] = today["temp_min"]
+                    temps_changed = True
+
+            if today.get("temp_max") is not None:
+                if self._last_valid_temps.get("temp_max") != today["temp_max"]:
+                    self._last_valid_temps["temp_max"] = today["temp_max"]
+                    temps_changed = True
+
+            # Persist to storage if changed
+            if temps_changed:
+                await self.async_save_temps()
+                _LOGGER.debug("Saved updated temperatures: %s", self._last_valid_temps)
 
     @callback
     def entity_registry_updated(self, event: Event) -> None:
