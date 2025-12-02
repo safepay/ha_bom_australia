@@ -250,6 +250,14 @@ class ObservationSensor(SensorBase):
         attr.update(self.collector.observations_data["data"]["station"])
         attr[ATTR_ATTRIBUTION] = ATTRIBUTION
 
+        # Add extended forecast text for condition sensor
+        if self.sensor_name == ATTR_API_CONDITION:
+            if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+                if len(self.collector.daily_forecasts_data["data"]) > 0:
+                    extended_text = self.collector.daily_forecasts_data["data"][0].get("extended_text")
+                    if extended_text:
+                        attr["forecast_text"] = extended_text
+
         # Only proceed for max_temp or min_temp
         if self.sensor_name not in ("max_temp", "min_temp"):
             return attr
