@@ -219,11 +219,11 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
         await self._store.async_save(self._last_valid_temps)
 
     async def _async_update_with_persistence(self) -> None:
-        """Update data and handle temperature persistence."""
+        """Update data and handle temperature and fire danger persistence."""
         # Call the original update method
         await self.collector.async_update()
 
-        # After update, handle temperature persistence for today's forecast
+        # After update, handle temperature and fire danger persistence for today's forecast
         if (
             self.collector.daily_forecasts_data
             and "data" in self.collector.daily_forecasts_data
@@ -245,6 +245,18 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
                     "Restored temp_max from storage: %s", self._last_valid_temps["temp_max"]
                 )
 
+            if today.get("fire_danger") is None and self._last_valid_temps.get("fire_danger") is not None:
+                today["fire_danger"] = self._last_valid_temps["fire_danger"]
+                _LOGGER.debug(
+                    "Restored fire_danger from storage: %s", self._last_valid_temps["fire_danger"]
+                )
+
+            if today.get("fire_danger_category") is None and self._last_valid_temps.get("fire_danger_category") is not None:
+                today["fire_danger_category"] = self._last_valid_temps["fire_danger_category"]
+                _LOGGER.debug(
+                    "Restored fire_danger_category from storage: %s", self._last_valid_temps["fire_danger_category"]
+                )
+
             # Save valid temp values for future use
             if today.get("temp_min") is not None:
                 if self._last_valid_temps.get("temp_min") != today["temp_min"]:
@@ -256,10 +268,20 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
                     self._last_valid_temps["temp_max"] = today["temp_max"]
                     temps_changed = True
 
+            if today.get("fire_danger") is not None:
+                if self._last_valid_temps.get("fire_danger") != today["fire_danger"]:
+                    self._last_valid_temps["fire_danger"] = today["fire_danger"]
+                    temps_changed = True
+
+            if today.get("fire_danger_category") is not None:
+                if self._last_valid_temps.get("fire_danger_category") != today["fire_danger_category"]:
+                    self._last_valid_temps["fire_danger_category"] = today["fire_danger_category"]
+                    temps_changed = True
+
             # Persist to storage if changed
             if temps_changed:
                 await self.async_save_temps()
-                _LOGGER.debug("Saved updated temperatures: %s", self._last_valid_temps)
+                _LOGGER.debug("Saved updated temperatures and fire danger: %s", self._last_valid_temps)
 
     @callback
     def entity_registry_updated(self, event: Event) -> None:
