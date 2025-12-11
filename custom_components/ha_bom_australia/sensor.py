@@ -344,9 +344,11 @@ class ForecastSensor(SensorBase):
             attr[ATTR_ATTRIBUTION] = ATTRIBUTION
             attr[ATTR_DATE] = iso8601.parse_date(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
             if (self.sensor_name == "fire_danger") and (self.current_state is not None):
-                if self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["default_colour"]:
-                    attr["color_fill"] = self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["default_colour"]
-                    attr["color_text"] =  "#ffffff" if (self.collector.daily_forecasts_data["data"][self.day]["fire_danger_category"]["text"] == "Catastrophic") else "#000000"
+                # Safely get fire_danger_category (may be null after ~4pm, but restored by coordinator)
+                fire_danger_category = self.collector.daily_forecasts_data["data"][self.day].get("fire_danger_category")
+                if fire_danger_category and fire_danger_category.get("default_colour"):
+                    attr["color_fill"] = fire_danger_category["default_colour"]
+                    attr["color_text"] = "#ffffff" if (fire_danger_category.get("text") == "Catastrophic") else "#000000"
             if self.sensor_name.startswith("extended"):
                 attr[ATTR_STATE] = self.collector.daily_forecasts_data["data"][self.day]["extended_text"]
         return attr
