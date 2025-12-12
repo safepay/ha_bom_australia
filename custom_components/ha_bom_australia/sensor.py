@@ -140,6 +140,9 @@ async def async_setup_entry(
                             )
                         )
                 else:
+                    # Limit extended_text and fire_danger to 4 days (0-3) as API data is not available beyond that
+                    if forecast in [ATTR_API_EXTENDED_TEXT, ATTR_API_FIRE_DANGER] and day >= 4:
+                        continue
                     new_entities.append(
                         ForecastSensor(
                             hass_data,
