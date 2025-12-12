@@ -154,10 +154,10 @@ class WeatherBase(WeatherEntity):
 
     @property
     def icon(self) -> str | None:
-        """Return the icon."""
-        if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
-            if len(self.collector.daily_forecasts_data["data"]) > 0:
-                return self.collector.daily_forecasts_data["data"][0].get("mdi_icon")
+        """Return the icon from most recent hourly forecast."""
+        if self.collector.hourly_forecasts_data and "data" in self.collector.hourly_forecasts_data:
+            if len(self.collector.hourly_forecasts_data["data"]) > 0:
+                return self.collector.hourly_forecasts_data["data"][0].get("mdi_icon")
         return None
 
     @property
@@ -227,10 +227,11 @@ class WeatherBase(WeatherEntity):
 
     @property
     def condition(self) -> str | None:
-        """Return the current condition."""
-        if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
-            if len(self.collector.daily_forecasts_data["data"]) > 0:
-                icon_descriptor = self.collector.daily_forecasts_data["data"][0].get("icon_descriptor")
+        """Return the current condition from most recent hourly forecast."""
+        if self.collector.hourly_forecasts_data and "data" in self.collector.hourly_forecasts_data:
+            if len(self.collector.hourly_forecasts_data["data"]) > 0:
+                # Get most recent hour (first in list)
+                icon_descriptor = self.collector.hourly_forecasts_data["data"][0].get("icon_descriptor")
                 if icon_descriptor and icon_descriptor in MAP_CONDITION:
                     return MAP_CONDITION[icon_descriptor]
         return None
@@ -292,12 +293,11 @@ class BomWeather(WeatherBase):
                     attrs["later_label"] = today.get("later_label")
                     attrs["later_temp"] = today.get("temp_later")
 
-                    # Add human-friendly condition text
-                    icon_descriptor = today.get("icon_descriptor")
-                    if icon_descriptor and icon_descriptor in MAP_CONDITION:
-                        ha_condition = MAP_CONDITION[icon_descriptor]
-                        if ha_condition and ha_condition in CONDITION_FRIENDLY:
-                            attrs["condition_text"] = CONDITION_FRIENDLY[ha_condition]
+                    # Add short text forecast with punctuation removed
+                    short_text = today.get("short_text")
+                    if short_text:
+                        # Remove trailing punctuation (periods, etc.)
+                        attrs["short_text"] = short_text.rstrip(".!,;:")
 
             # Add warning count
             if self.collector.warnings_data and "data" in self.collector.warnings_data:

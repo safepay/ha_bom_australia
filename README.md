@@ -42,13 +42,15 @@ This integration provides three types of entities to organize your weather data:
 
 ### 1. Weather Entity
 A comprehensive weather entity that combines both daily and hourly forecasts in a single view, including:
-- Current conditions (temperature, humidity, wind speed, wind gust, wind bearing)
+- Current conditions from hourly forecast (more frequently updated than daily forecast)
+- Weather state (condition) derived from most recent hourly forecast
+- Current observations (temperature, humidity, wind speed, wind gust, wind bearing)
 - Apparent temperature (feels like)
 - Dew point (calculated)
 - UV index
 - 7-day daily forecasts
 - Hourly forecasts
-- Additional attributes: sunrise/sunset, fire danger, station information, warning count
+- Additional attributes: sunrise/sunset, fire danger, station information, warning count, short text forecast
 
 ### 2. Binary Sensors (Warnings)
 Individual binary sensors for different warning types (matching BOM API):
@@ -79,6 +81,14 @@ Regular sensors for:
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
 - Handles the "null" value for today's minimum forecast temperature that the API produces late each day
+
+## Recent Changes
+
+### Version 1.6.0
+- **Weather state now uses hourly forecast**: The weather entity's condition (sunny, cloudy, rainy, etc.) and icon now use the most recent hourly forecast data instead of the daily forecast, providing more up-to-date weather conditions
+- **Condition sensor uses hourly data**: The observation condition sensor now displays current weather based on hourly forecasts with proper night adjustments (shows "Clear" instead of "Sunny" at night)
+- **New short_text attribute**: Weather entity now includes a `short_text` attribute with a brief forecast summary from the daily forecast (punctuation removed for cleaner display)
+- **Removed condition_text attribute**: Replaced with `short_text` for more accurate naming
 
 ## Breaking Changes
 
