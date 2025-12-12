@@ -86,7 +86,7 @@ Regular sensors for:
 
 ### Version 1.6.0
 - **Weather state now uses hourly forecast**: The weather entity's condition (sunny, cloudy, rainy, etc.) and icon now use the most recent hourly forecast data instead of the daily forecast, providing more up-to-date weather conditions
-- **Condition sensor uses hourly data**: The observation condition sensor now displays current weather based on hourly forecasts with proper night adjustments (shows "Clear" instead of "Sunny" at night)
+- **Condition sensor shows descriptive text**: The observation condition sensor now displays the short forecast text (e.g., "Shower or two. Possible storm") from the daily forecast, which updates more frequently than the icon descriptor
 - **New short_text attribute**: Weather entity now includes a `short_text` attribute with a brief forecast summary from the daily forecast (punctuation removed for cleaner display)
 - **Removed condition_text attribute**: Replaced with `short_text` for more accurate naming
 

@@ -284,16 +284,14 @@ class ObservationSensor(SensorBase):
     @property
     def state(self) -> Any:
         """Return the state of the sensor."""
-        # Special handling for condition sensor - use hourly forecast for more current data
+        # Special handling for condition sensor - use short_text from daily forecast
         if self.sensor_name == ATTR_API_CONDITION:
-            if self.collector.hourly_forecasts_data and "data" in self.collector.hourly_forecasts_data:
-                if len(self.collector.hourly_forecasts_data["data"]) > 0:
-                    # Get most recent hour (first in list) with night adjustments already applied
-                    icon_descriptor = self.collector.hourly_forecasts_data["data"][0].get("icon_descriptor")
-                    if icon_descriptor and icon_descriptor in MAP_CONDITION:
-                        ha_condition = MAP_CONDITION[icon_descriptor]
-                        if ha_condition and ha_condition in CONDITION_FRIENDLY:
-                            return CONDITION_FRIENDLY[ha_condition]
+            if self.collector.daily_forecasts_data and "data" in self.collector.daily_forecasts_data:
+                if len(self.collector.daily_forecasts_data["data"]) > 0:
+                    short_text = self.collector.daily_forecasts_data["data"][0].get("short_text")
+                    if short_text:
+                        # Remove trailing punctuation for cleaner display
+                        return short_text.rstrip(".!,;:")
             return None
 
         # Standard observation sensor handling
