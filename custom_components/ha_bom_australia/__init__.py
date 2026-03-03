@@ -201,6 +201,11 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
             er.EVENT_ENTITY_REGISTRY_UPDATED, self.entity_registry_updated
         )
 
+    async def async_shutdown(self) -> None:
+        """Unsubscribe from entity registry events on shutdown."""
+        self.entity_registry_updated_unsub()
+        await super().async_shutdown()
+
     async def async_load_temps(self) -> None:
         """Load last valid temperature values from storage."""
         data = await self._store.async_load()
