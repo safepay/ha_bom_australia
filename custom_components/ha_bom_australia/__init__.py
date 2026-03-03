@@ -5,11 +5,9 @@ import logging
 from datetime import timedelta
 from typing import Any, Final
 
-from aiohttp.client_exceptions import ClientConnectorError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import debounce
 from homeassistant.helpers import device_registry as dr
@@ -73,14 +71,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BOM from a config entry."""
     collector = Collector(entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE])
 
-    try:
-        await collector.async_update()
-    except ClientConnectorError as ex:
-        raise ConfigEntryNotReady from ex
-
-    coordinator = BomDataUpdateCoordinator(hass=hass, collector=collector)
+    coordinator = BomDataUpdateCoordinator(hass=hass, collector=collector, config_entry=entry)
     await coordinator.async_load_temps()
-    await coordinator.async_refresh()
+    await coordinator.async_config_entry_first_refresh()
 
     hass_data = hass.data.setdefault(DOMAIN, {})
     hass_data[entry.entry_id] = {
@@ -186,7 +179,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class BomDataUpdateCoordinator(DataUpdateCoordinator):
     """Data update coordinator for Bureau of Meteorology."""
 
-    def __init__(self, hass: HomeAssistant, collector: Collector) -> None:
+    def __init__(self, hass: HomeAssistant, collector: Collector, config_entry: ConfigEntry) -> None:
         """Initialise the data update coordinator."""
         self.collector = collector
         self._store = Store(hass, version=1, key=f"{DOMAIN}.{collector.geohash}.temps")
@@ -196,6 +189,7 @@ class BomDataUpdateCoordinator(DataUpdateCoordinator):
             hass=hass,
             logger=_LOGGER,
             name=DOMAIN,
+            config_entry=config_entry,
             update_method=self._async_update_with_persistence,
             update_interval=DEFAULT_SCAN_INTERVAL,
             request_refresh_debouncer=debounce.Debouncer(
