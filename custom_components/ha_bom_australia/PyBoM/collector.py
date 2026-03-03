@@ -155,7 +155,7 @@ class Collector:
                 elif not is_night and icon_desc == "clear":
                     d["icon_descriptor"] = "sunny"
 
-            d["mdi_icon"] = MAP_MDI_ICON[d["icon_descriptor"]]
+            d["mdi_icon"] = MAP_MDI_ICON.get(d.get("icon_descriptor"))
 
             # If rain amount max is None, set as rain amount min
             if d["rain_amount_max"] is None:
@@ -185,7 +185,7 @@ class Collector:
             elif not is_night and icon_desc == "clear":
                 d["icon_descriptor"] = "sunny"
 
-            d["mdi_icon"] = MAP_MDI_ICON[d["icon_descriptor"]]
+            d["mdi_icon"] = MAP_MDI_ICON.get(d.get("icon_descriptor"))
 
             flatten_dict(["amount"], d["rain"])
             flatten_dict(["rain", "wind"], d)

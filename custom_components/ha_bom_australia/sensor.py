@@ -245,6 +245,11 @@ class ObservationSensor(SensorBase):
         """Return the state attributes of the sensor."""
         attr = {}
 
+        if not self.collector.locations_data or "data" not in self.collector.locations_data:
+            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+        if not self.collector.observations_data or "metadata" not in self.collector.observations_data:
+            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         for key in self.collector.observations_data["metadata"]:
             try:
@@ -300,6 +305,8 @@ class ObservationSensor(SensorBase):
             return None
 
         # Standard observation sensor handling
+        if not self.collector.observations_data or "data" not in self.collector.observations_data:
+            return None
         if self.sensor_name in self.collector.observations_data["data"]:
             if self.collector.observations_data["data"][self.sensor_name] is not None:
                 if self.sensor_name == "max_temp" or self.sensor_name == "min_temp":
@@ -337,6 +344,11 @@ class ForecastSensor(SensorBase):
         """Return the state attributes of the sensor."""
         attr = {}
 
+        if not self.collector.daily_forecasts_data or "data" not in self.collector.daily_forecasts_data:
+            return attr
+        if not self.collector.locations_data or "data" not in self.collector.locations_data:
+            return attr
+
         # If there is no data for this day, do not add attributes for this day.
         if self.day < len(self.collector.daily_forecasts_data["data"]):
             tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
@@ -360,6 +372,10 @@ class ForecastSensor(SensorBase):
     @property
     def state(self) -> Any:
         """Return the state of the sensor."""
+        if not self.collector.daily_forecasts_data or "data" not in self.collector.daily_forecasts_data:
+            return None
+        if not self.collector.locations_data or "data" not in self.collector.locations_data:
+            return None
         # If there is no data for this day, return state as 'None'.
         if self.day < len(self.collector.daily_forecasts_data["data"]):
             if self.device_class == SensorDeviceClass.TIMESTAMP:
@@ -431,16 +447,21 @@ class NowLaterSensor(SensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
-        attr = self.collector.daily_forecasts_data["metadata"]
+        if not self.collector.daily_forecasts_data or "metadata" not in self.collector.daily_forecasts_data:
+            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+        attr = dict(self.collector.daily_forecasts_data["metadata"])
         attr[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attr
 
     @property
     def state(self) -> Any:
         """Return the state of the sensor."""
-        self.current_state = self.collector.daily_forecasts_data["data"][0][
-            self.sensor_name
-        ]
+        if not self.collector.daily_forecasts_data or "data" not in self.collector.daily_forecasts_data:
+            return None
+        data = self.collector.daily_forecasts_data["data"]
+        if not data:
+            return None
+        self.current_state = data[0].get(self.sensor_name)
         return self.current_state
 
     @property
