@@ -73,7 +73,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator = BomDataUpdateCoordinator(hass=hass, collector=collector, config_entry=entry)
     await coordinator.async_load_temps()
-    await coordinator.async_config_entry_first_refresh()
 
     hass_data = hass.data.setdefault(DOMAIN, {})
     hass_data[entry.entry_id] = {
@@ -82,6 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await coordinator.async_config_entry_first_refresh()
 
     update_listener = entry.add_update_listener(async_update_options)
     hass.data[DOMAIN][entry.entry_id][UPDATE_LISTENER] = update_listener
