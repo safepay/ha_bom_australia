@@ -9,7 +9,7 @@ import time
 from typing import Any
 
 from .const import (
-    MAP_MDI_ICON, URL_BASE, URL_DAILY,
+    MAP_MDI_ICON, URL_BASE, URL_DAILY, apply_day_night,
     URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS,
     USER_AGENT
 )
@@ -146,14 +146,7 @@ class Collector:
                     is_night = now_data.get("is_night")
                 else:
                     is_night = False
-                icon_desc = d.get("icon_descriptor")
-
-                # Override icon_descriptor if it's night and icon is sunny/mostly_sunny
-                if is_night and icon_desc in {"sunny", "mostly_sunny"}:
-                    d["icon_descriptor"] = "clear"
-                # Override icon_descriptor if its clear during the day
-                elif not is_night and icon_desc == "clear":
-                    d["icon_descriptor"] = "sunny"
+                d["icon_descriptor"] = apply_day_night(d.get("icon_descriptor"), is_night)
 
             d["mdi_icon"] = MAP_MDI_ICON.get(d.get("icon_descriptor"))
 
@@ -175,15 +168,9 @@ class Collector:
         for hour in range(0, hours):
             d = self.hourly_forecasts_data["data"][hour]
 
-            is_night = d.get("is_night")
-            icon_desc = d.get("icon_descriptor")
-
-            # Override icon_descriptor if it's night and icon is sunny/mostly_sunny
-            if is_night and icon_desc in {"sunny", "mostly_sunny"}:
-                d["icon_descriptor"] = "clear"
-            # Override icon_descriptor if its clear during the day
-            elif not is_night and icon_desc == "clear":
-                d["icon_descriptor"] = "sunny"
+            d["icon_descriptor"] = apply_day_night(
+                d.get("icon_descriptor"), d.get("is_night")
+            )
 
             d["mdi_icon"] = MAP_MDI_ICON.get(d.get("icon_descriptor"))
 

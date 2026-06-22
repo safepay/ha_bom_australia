@@ -14,6 +14,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_sunrise, async_track_sunset
+from homeassistant.helpers.sun import is_up
 from zoneinfo import ZoneInfo
 
 from . import BomDataUpdateCoordinator
@@ -30,6 +32,7 @@ from .const import (
     MODEL_NAME,
 )
 from .PyBoM.collector import Collector
+from .PyBoM.const import MAP_MDI_ICON, apply_day_night
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,6 +87,10 @@ class WeatherBase(WeatherEntity):
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
         self.async_on_remove(self.coordinator.async_add_listener(self._update_callback))
+        # Re-render at the actual sunrise/sunset so the sunny <-> clear-night
+        # transition is immediate rather than lagging to the next hour block.
+        self.async_on_remove(async_track_sunrise(self.hass, self._update_callback))
+        self.async_on_remove(async_track_sunset(self.hass, self._update_callback))
         self._update_callback()
 
     async def async_forecast_daily(self) -> list[Forecast]:
@@ -152,13 +159,25 @@ class WeatherBase(WeatherEntity):
             return self.collector.observations_data["data"].get("temp")
         return None
 
+    def _current_icon_descriptor(self) -> str | None:
+        """Return the current hour's icon descriptor, corrected for real-time sun position.
+
+        BOM's hourly ``is_night`` flag only flips at the top of the hour, which makes the
+        sunny <-> clear-night transition lag up to an hour behind the actual sunrise/sunset.
+        Re-derive the day/night swap from Home Assistant's current sun position instead.
+        """
+        data = self.collector.hourly_forecasts_data
+        if not data or "data" not in data or not data["data"]:
+            return None
+        descriptor = data["data"][0].get("icon_descriptor")
+        if self.hass is not None:
+            descriptor = apply_day_night(descriptor, not is_up(self.hass))
+        return descriptor
+
     @property
     def icon(self) -> str | None:
         """Return the icon from most recent hourly forecast."""
-        if self.collector.hourly_forecasts_data and "data" in self.collector.hourly_forecasts_data:
-            if len(self.collector.hourly_forecasts_data["data"]) > 0:
-                return self.collector.hourly_forecasts_data["data"][0].get("mdi_icon")
-        return None
+        return MAP_MDI_ICON.get(self._current_icon_descriptor())
 
     @property
     def native_temperature_unit(self) -> str:
@@ -227,14 +246,8 @@ class WeatherBase(WeatherEntity):
 
     @property
     def condition(self) -> str | None:
-        """Return the current condition from most recent hourly forecast."""
-        if self.collector.hourly_forecasts_data and "data" in self.collector.hourly_forecasts_data:
-            if len(self.collector.hourly_forecasts_data["data"]) > 0:
-                # Get most recent hour (first in list)
-                icon_descriptor = self.collector.hourly_forecasts_data["data"][0].get("icon_descriptor")
-                if icon_descriptor and icon_descriptor in MAP_CONDITION:
-                    return MAP_CONDITION[icon_descriptor]
-        return None
+        """Return the current condition, corrected for real-time sun position."""
+        return MAP_CONDITION.get(self._current_icon_descriptor())
 
     async def async_update(self) -> None:
         """Update the weather data."""
