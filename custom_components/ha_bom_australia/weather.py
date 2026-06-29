@@ -111,6 +111,11 @@ class WeatherBase(WeatherEntity):
                 precipitation_probability=data.get("rain_chance"),
             )
             for data in self.collector.daily_forecasts_data["data"]
+            # BOM returns a trailing partial day beyond its 7-day horizon that holds
+            # only an overnight minimum; temp_max, icon_descriptor and rain fields are
+            # all null. Skip those days so the card shows complete forecasts only,
+            # matching the official BOM app.
+            if data.get("temp_max") is not None
         ]
 
     async def async_forecast_hourly(self) -> list[Forecast]:
