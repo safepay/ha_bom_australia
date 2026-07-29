@@ -60,8 +60,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         if "forecasts_basename" in new:
             new[CONF_WEATHER_NAME] = config_entry.data["forecasts_basename"]
 
-        config_entry.version = 2
-        hass.config_entries.async_update_entry(config_entry, data=new)
+        hass.config_entries.async_update_entry(config_entry, data=new, version=2)
 
     _LOGGER.info("Migration to version %s successful", config_entry.version)
     return True
