@@ -152,6 +152,10 @@ class WeatherBase(WeatherEntity):
     def _update_callback(self) -> None:
         """Load data from integration."""
         self.async_write_ha_state()
+        if entry := self.coordinator.config_entry:
+            entry.async_create_task(self.hass, self.async_update_listeners(None))
+            return
+        self.hass.async_create_task(self.async_update_listeners(None))
 
     @property
     def should_poll(self) -> bool:
