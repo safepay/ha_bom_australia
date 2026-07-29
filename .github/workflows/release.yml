@@ -6,6 +6,10 @@ name: Release
 #   3. tag that commit as vX.Y.Z
 #   4. create the GitHub release HACS reads, with notes generated from the
 #      merged PRs and commits since the previous release
+#
+# Versions are always plain X.Y.Z, including pre-releases. A pre-release is the
+# same version number as the eventual stable one, distinguished only by GitHub's
+# pre-release flag, so promoting it needs no rebuild: see .github/RELEASING.md.
 on:
   workflow_dispatch:
     inputs:
@@ -20,6 +24,10 @@ on:
       title:
         description: "Release title (leave blank to use the version number)"
         type: string
+      prerelease:
+        description: "Publish as a pre-release (only reaches HACS users who have enabled beta versions)"
+        type: boolean
+        default: false
       draft:
         description: "Create as a draft so the notes can be edited before publishing"
         type: boolean
@@ -107,12 +115,38 @@ jobs:
           NEXT: ${{ steps.version.outputs.next }}
           TITLE: ${{ inputs.title }}
           DRAFT: ${{ inputs.draft }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           args=(--verify-tag --generate-notes --title "${TITLE:-v${NEXT}}")
+
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+
           if [ "$DRAFT" = "true" ]; then
             args+=(--draft)
-          else
+          fi
+
+          # --latest is what makes HACS offer the release to everyone, so it is
+          # withheld from a pre-release (beta opt-ins only) and from a draft
+          # (nothing is published yet). Promoting a pre-release is done from the
+          # GitHub UI afterwards; the tag and manifest already hold the real
+          # version, so there is nothing to rebuild.
+          if [ "$PRERELEASE" != "true" ] && [ "$DRAFT" != "true" ]; then
             args+=(--latest)
           fi
+
           gh release create "v${NEXT}" "${args[@]}"
-          echo "Release v${NEXT} created." >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$PRERELEASE" = "true" ]; then
+            {
+              echo "Pre-release v${NEXT} created."
+              echo ""
+              echo "It reaches only users who have enabled beta versions for this"
+              echo "repository in HACS. To ship it to everyone, edit the release on"
+              echo "GitHub: untick **Set as a pre-release**, tick **Set as the latest"
+              echo "release**. No new version or tag is needed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Release v${NEXT} created." >> "$GITHUB_STEP_SUMMARY"
+          fi
