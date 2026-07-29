@@ -8,6 +8,7 @@ from typing import Any, Final
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import debounce
 from homeassistant.helpers import device_registry as dr
@@ -68,7 +69,11 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BOM from a config entry."""
-    collector = Collector(entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE])
+    collector = Collector(
+        entry.data[CONF_LATITUDE],
+        entry.data[CONF_LONGITUDE],
+        async_get_clientsession(hass),
+    )
 
     coordinator = BomDataUpdateCoordinator(hass=hass, collector=collector, config_entry=entry)
     await coordinator.async_load_temps()
