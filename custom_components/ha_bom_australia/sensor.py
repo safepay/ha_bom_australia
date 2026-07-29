@@ -229,14 +229,6 @@ class ObservationSensor(SensorBase):
         return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
-    def native_value(self) -> Any:
-        """Return the state of the device."""
-        # For condition sensor, use the computed state value
-        if self.sensor_name == ATTR_API_CONDITION:
-            return self.state
-        return self.coordinator.data.get(self.entity_description.key)
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         attr = {}
@@ -329,11 +321,6 @@ class ForecastSensor(SensorBase):
     def unique_id(self) -> str:
         """Return Unique ID string."""
         return f"{self.entity_prefix}_{self.day}_{self.sensor_name}"
-
-    @property
-    def native_value(self) -> Any:
-        """Return the state of the device."""
-        return self.coordinator.data.get(self.entity_description.key)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -436,11 +423,6 @@ class NowLaterSensor(SensorBase):
         return f"{self.entity_prefix}_{self.sensor_name}"
 
     @property
-    def native_value(self) -> Any:
-        """Return the state of the device."""
-        return self.coordinator.data.get(self.entity_description.key)
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         if not self.collector.daily_forecasts_data or "metadata" not in self.collector.daily_forecasts_data:
@@ -483,11 +465,6 @@ class WarningsSensor(SensorBase):
     def unique_id(self) -> str:
         """Return Unique ID string."""
         return f"{self.entity_prefix}_warnings"
-
-    @property
-    def native_value(self) -> Any:
-        """Return the state of the device."""
-        return self.state
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
