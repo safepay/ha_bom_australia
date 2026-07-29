@@ -1,7 +1,18 @@
 """Helpers functions for PyBom."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
+
+def parse_iso_datetime(value: str) -> datetime:
+    """Parse an ISO 8601 timestamp, defaulting to UTC when no offset is given.
+
+    Raises ValueError if the value is not a valid timestamp.
+    """
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 def flatten_dict(keys: list[str], dict: dict[str, Any]) -> dict[str, Any]:
     """Flatten nested dictionary keys."""

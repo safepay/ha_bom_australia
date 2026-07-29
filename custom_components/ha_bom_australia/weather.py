@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
-import iso8601
 from homeassistant.components.weather import Forecast, WeatherEntity, WeatherEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed, UnitOfTemperature, UnitOfPressure, UnitOfLength
@@ -33,6 +32,7 @@ from .const import (
 )
 from .PyBoM.collector import Collector
 from .PyBoM.const import MAP_MDI_ICON, apply_day_night
+from .PyBoM.helpers import parse_iso_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class WeatherBase(WeatherEntity):
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
-                datetime=iso8601.parse_date(data["date"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
+                datetime=parse_iso_datetime(data["date"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
                 native_temperature=data.get("temp_max"),
                 condition=MAP_CONDITION.get(data.get("icon_descriptor")),
                 templow=data.get("temp_min"),
@@ -129,7 +129,7 @@ class WeatherBase(WeatherEntity):
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         return [
             Forecast(
-                datetime=iso8601.parse_date(data["time"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
+                datetime=parse_iso_datetime(data["time"]).astimezone(tzinfo).replace(tzinfo=None).isoformat(),
                 native_temperature=data.get("temp"),
                 condition=MAP_CONDITION.get(data.get("icon_descriptor")),
                 native_precipitation=data.get("rain_amount_max"),

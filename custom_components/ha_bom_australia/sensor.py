@@ -5,7 +5,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Final
 
-import iso8601
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import (
@@ -49,6 +48,7 @@ from .const import (
     CONDITION_FRIENDLY,
 )
 from .PyBoM.collector import Collector
+from .PyBoM.helpers import parse_iso_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -253,8 +253,8 @@ class ObservationSensor(SensorBase):
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         for key in self.collector.observations_data["metadata"]:
             try:
-                attr[key] = iso8601.parse_date(self.collector.observations_data["metadata"][key]).astimezone(tzinfo).isoformat()
-            except iso8601.ParseError:
+                attr[key] = parse_iso_datetime(self.collector.observations_data["metadata"][key]).astimezone(tzinfo).isoformat()
+            except ValueError:
                 attr[key] = self.collector.observations_data["metadata"][key]
 
         attr.update(self.collector.observations_data["data"]["station"])
@@ -288,7 +288,7 @@ class ObservationSensor(SensorBase):
             return attr
 
         # We have all required data, now add the time_observed attribute
-        attr["time_observed"] = iso8601.parse_date(time_str).astimezone(tzinfo).isoformat()
+        attr["time_observed"] = parse_iso_datetime(time_str).astimezone(tzinfo).isoformat()
         return attr
 
     @property
@@ -354,11 +354,11 @@ class ForecastSensor(SensorBase):
             tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
             for key in self.collector.daily_forecasts_data["metadata"]:
                 try:
-                    attr[key] = iso8601.parse_date(self.collector.daily_forecasts_data["metadata"][key]).astimezone(tzinfo).isoformat()
-                except iso8601.ParseError:
+                    attr[key] = parse_iso_datetime(self.collector.daily_forecasts_data["metadata"][key]).astimezone(tzinfo).isoformat()
+                except ValueError:
                     attr[key] = self.collector.daily_forecasts_data["metadata"][key]
             attr[ATTR_ATTRIBUTION] = ATTRIBUTION
-            attr[ATTR_DATE] = iso8601.parse_date(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
+            attr[ATTR_DATE] = parse_iso_datetime(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
             if (self.sensor_name == "fire_danger") and (self.current_state is not None):
                 # Safely get fire_danger_category (may be null after ~4pm, but restored by coordinator)
                 fire_danger_category = self.collector.daily_forecasts_data["data"][self.day].get("fire_danger_category")
@@ -383,8 +383,8 @@ class ForecastSensor(SensorBase):
                     self.collector.locations_data["data"]["timezone"]
                 )
                 try:
-                    return iso8601.parse_date(self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]).astimezone(tzinfo).isoformat()
-                except iso8601.ParseError:
+                    return parse_iso_datetime(self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]).astimezone(tzinfo).isoformat()
+                except ValueError:
                     return self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
             if self.sensor_name == "uv_forecast":
                 if self.collector.daily_forecasts_data["data"][self.day]["uv_category"] is None:
