@@ -10,6 +10,12 @@ config/
 # Python version
 .python_version
 
+# Claude Code: share the project instructions, keep local settings private.
+# Overrides the global ignore of .claude/ in ~/.config/git/ignore.
+!.claude/
+.claude/*
+!.claude/CLAUDE.md
+
 # IDE
 .vscode/
 .idea/
