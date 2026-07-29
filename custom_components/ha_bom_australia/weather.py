@@ -257,7 +257,7 @@ class WeatherBase(WeatherEntity):
 
     async def async_update(self) -> None:
         """Update the weather data."""
-        await self.coordinator.async_update()
+        await self.coordinator.async_request_refresh()
 
 
 class BomWeather(WeatherBase):

@@ -215,10 +215,6 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
         """Entities do not individually poll."""
         return False
 
-    async def async_update(self) -> None:
-        """Refresh the data on the collector object."""
-        await self.collector.async_update()
-
 
 class ObservationSensor(SensorBase):
     """Representation of a BOM Observation Sensor."""
