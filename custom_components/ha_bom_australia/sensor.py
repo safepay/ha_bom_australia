@@ -2,20 +2,22 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     ATTR_DATE,
     ATTR_STATE,
 )
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from zoneinfo import ZoneInfo
@@ -44,8 +46,6 @@ from .const import (
     ATTR_API_CONDITION,
     ATTR_API_EXTENDED_TEXT,
     ATTR_API_FIRE_DANGER,
-    MAP_CONDITION,
-    CONDITION_FRIENDLY,
 )
 from .PyBoM.collector import Collector
 from .PyBoM.helpers import parse_iso_datetime
@@ -53,6 +53,16 @@ from .PyBoM.helpers import parse_iso_datetime
 _LOGGER = logging.getLogger(__name__)
 
 MAX_STATE_LENGTH: Final[int] = 251  # Maximum length for sensor state before truncation
+
+
+def format_short_time(value: datetime) -> str:
+    """Format a time as e.g. '6:12am'.
+
+    Avoids strftime's "%-I" hour padding modifier, which is a glibc extension
+    and raises ValueError on Windows, and its locale-dependent "%p".
+    """
+    meridiem = "am" if value.hour < 12 else "pm"
+    return f"{value.hour % 12 or 12}:{value.minute:02d}{meridiem}"
 
 
 async def async_setup_entry(
@@ -179,11 +189,12 @@ async def async_setup_entry(
 class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
     """Base representation of a BOM Sensor."""
 
+    _attr_attribution = ATTRIBUTION
+
     def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription, device_type: str = "Sensors") -> None:
         """Initialize the sensor."""
         super().__init__(hass_data[COORDINATOR])
         self.collector: Collector = hass_data[COLLECTOR]
-        self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name: str = location_name
         self.entity_prefix: str = entity_prefix
         self.sensor_name: str = sensor_name
@@ -200,20 +211,6 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
             model=MODEL_NAME,
             name=f"BOM {self.location_name} {device_type}",
         )
-
-    async def async_added_to_hass(self) -> None:
-        """Set up a listener and load data."""
-        self.async_on_remove(self.coordinator.async_add_listener(self._update_callback))
-        self._update_callback()
-
-    @callback
-    def _update_callback(self) -> None:
-        self.async_write_ha_state()
-
-    @property
-    def should_poll(self) -> bool:
-        """Entities do not individually poll."""
-        return False
 
 
 class ObservationSensor(SensorBase):
@@ -234,9 +231,9 @@ class ObservationSensor(SensorBase):
         attr = {}
 
         if not self.collector.locations_data or "data" not in self.collector.locations_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+            return attr
         if not self.collector.observations_data or "metadata" not in self.collector.observations_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+            return attr
 
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         for key in self.collector.observations_data["metadata"]:
@@ -246,7 +243,6 @@ class ObservationSensor(SensorBase):
                 attr[key] = self.collector.observations_data["metadata"][key]
 
         attr.update(self.collector.observations_data["data"]["station"])
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
 
         # Add extended forecast text for condition sensor
         if self.sensor_name == ATTR_API_CONDITION:
@@ -340,7 +336,6 @@ class ForecastSensor(SensorBase):
                     attr[key] = parse_iso_datetime(self.collector.daily_forecasts_data["metadata"][key]).astimezone(tzinfo).isoformat()
                 except ValueError:
                     attr[key] = self.collector.daily_forecasts_data["metadata"][key]
-            attr[ATTR_ATTRIBUTION] = ATTRIBUTION
             attr[ATTR_DATE] = parse_iso_datetime(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
             if (self.sensor_name == "fire_danger") and (self.current_state is not None):
                 # Safely get fire_danger_category (may be null after ~4pm, but restored by coordinator)
@@ -370,25 +365,31 @@ class ForecastSensor(SensorBase):
                 except ValueError:
                     return self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
             if self.sensor_name == "uv_forecast":
-                if self.collector.daily_forecasts_data["data"][self.day]["uv_category"] is None:
+                day_data = self.collector.daily_forecasts_data["data"][self.day]
+                uv_category = day_data.get("uv_category")
+                if uv_category is None:
                     return None
-                if self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"] is None:
-                    return (
-                        f"Sun protection not required, UV Index predicted to reach "
-                        f'{self.collector.daily_forecasts_data["data"][self.day]["uv_max_index"]} '
-                        f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
-                    )
-                else:
-                    utc = timezone.utc
-                    local = ZoneInfo(self.collector.locations_data["data"]["timezone"])
-                    start_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
-                    end_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_end_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
-                    return (
-                        f'Sun protection recommended from {start_time.strftime("%-I:%M%p").lower()} to '
-                        f'{end_time.strftime("%-I:%M%p").lower()}, UV Index predicted to reach '
-                        f'{self.collector.daily_forecasts_data["data"][self.day]["uv_max_index"]} '
-                        f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
-                    )
+                category = uv_category.replace("veryhigh", "very high").title()
+                max_index = day_data.get("uv_max_index")
+                no_protection_required = (
+                    f"Sun protection not required, UV Index predicted to reach "
+                    f"{max_index} [{category}]"
+                )
+
+                # BOM omits both UV times overnight and outside the UV season,
+                # and has been seen returning one of the pair without the other.
+                local = ZoneInfo(self.collector.locations_data["data"]["timezone"])
+                try:
+                    start_time = parse_iso_datetime(day_data.get("uv_start_time")).astimezone(local)
+                    end_time = parse_iso_datetime(day_data.get("uv_end_time")).astimezone(local)
+                except ValueError:
+                    return no_protection_required
+
+                return (
+                    f"Sun protection recommended from {format_short_time(start_time)} to "
+                    f"{format_short_time(end_time)}, UV Index predicted to reach "
+                    f"{max_index} [{category}]"
+                )
             new_state = self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
 
             if isinstance(new_state, str) and len(new_state) > MAX_STATE_LENGTH:
@@ -426,10 +427,8 @@ class NowLaterSensor(SensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         if not self.collector.daily_forecasts_data or "metadata" not in self.collector.daily_forecasts_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
-        attr = dict(self.collector.daily_forecasts_data["metadata"])
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
-        return attr
+            return {}
+        return dict(self.collector.daily_forecasts_data["metadata"])
 
     @property
     def state(self) -> Any:
@@ -483,19 +482,20 @@ class WarningsSensor(SensorBase):
             if "metadata" in self.collector.warnings_data:
                 attr["response_timestamp"] = self.collector.warnings_data["metadata"].get("response_timestamp")
 
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attr
 
     @property
-    def state(self) -> Any:
-        """Return the state of the sensor (count of active warnings)."""
-        if (
-            self.collector.warnings_data
-            and "data" in self.collector.warnings_data
-        ):
-            # Return the count of warnings
-            return len(self.collector.warnings_data["data"])
-        return 0
+    def state(self) -> int:
+        """Return the state of the sensor (count of active warnings).
+
+        Reports 0 rather than None when there is no warnings data, so the state
+        stays numeric for template arithmetic and history graphs. A BOM outage
+        is therefore indistinguishable from a quiet day.
+        """
+        if not self.collector.warnings_data:
+            return 0
+        # BOM can send "data": null, which len() cannot take.
+        return len(self.collector.warnings_data.get("data") or [])
 
     @property
     def name(self) -> str:
