@@ -503,15 +503,17 @@ class WarningsSensor(SensorBase):
         return attr
 
     @property
-    def state(self) -> Any:
-        """Return the state of the sensor (count of active warnings)."""
-        if (
-            self.collector.warnings_data
-            and "data" in self.collector.warnings_data
-        ):
-            # Return the count of warnings
-            return len(self.collector.warnings_data["data"])
-        return 0
+    def state(self) -> int:
+        """Return the state of the sensor (count of active warnings).
+
+        Reports 0 rather than None when there is no warnings data, so the state
+        stays numeric for template arithmetic and history graphs. A BOM outage
+        is therefore indistinguishable from a quiet day.
+        """
+        if not self.collector.warnings_data:
+            return 0
+        # BOM can send "data": null, which len() cannot take.
+        return len(self.collector.warnings_data.get("data") or [])
 
     @property
     def name(self) -> str:
