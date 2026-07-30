@@ -219,14 +219,17 @@ class Collector:
                 if self.observations_data["data"]["wind"] is not None:
                     flatten_dict(["wind"], self.observations_data["data"])
                 else:
+                    # The speeds must stay None rather than a placeholder string:
+                    # they are numeric sensors, and the sensor platform rejects a
+                    # non-numeric value for one with a unit and a device class.
                     self.observations_data["data"]["wind_direction"] = "unavailable"
-                    self.observations_data["data"]["wind_speed_kilometre"] = "unavailable"
-                    self.observations_data["data"]["wind_speed_knot"] = "unavailable"
+                    self.observations_data["data"]["wind_speed_kilometre"] = None
+                    self.observations_data["data"]["wind_speed_knot"] = None
                 if self.observations_data["data"]["gust"] is not None:
                     flatten_dict(["gust"], self.observations_data["data"])
                 else:
-                    self.observations_data["data"]["gust_speed_kilometre"] = "unavailable"
-                    self.observations_data["data"]["gust_speed_knot"] = "unavailable"
+                    self.observations_data["data"]["gust_speed_kilometre"] = None
+                    self.observations_data["data"]["gust_speed_knot"] = None
 
                 # Calculate dew point using Magnus-Tetens formula
                 temp = self.observations_data["data"].get("temp")
