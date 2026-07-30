@@ -55,6 +55,16 @@ _LOGGER = logging.getLogger(__name__)
 MAX_STATE_LENGTH: Final[int] = 251  # Maximum length for sensor state before truncation
 
 
+def format_short_time(value: datetime) -> str:
+    """Format a time as e.g. '6:12am'.
+
+    Avoids strftime's "%-I" hour padding modifier, which is a glibc extension
+    and raises ValueError on Windows, and its locale-dependent "%p".
+    """
+    meridiem = "am" if value.hour < 12 else "pm"
+    return f"{value.hour % 12 or 12}:{value.minute:02d}{meridiem}"
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -370,25 +380,31 @@ class ForecastSensor(SensorBase):
                 except ValueError:
                     return self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
             if self.sensor_name == "uv_forecast":
-                if self.collector.daily_forecasts_data["data"][self.day]["uv_category"] is None:
+                day_data = self.collector.daily_forecasts_data["data"][self.day]
+                uv_category = day_data.get("uv_category")
+                if uv_category is None:
                     return None
-                if self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"] is None:
-                    return (
-                        f"Sun protection not required, UV Index predicted to reach "
-                        f'{self.collector.daily_forecasts_data["data"][self.day]["uv_max_index"]} '
-                        f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
-                    )
-                else:
-                    utc = timezone.utc
-                    local = ZoneInfo(self.collector.locations_data["data"]["timezone"])
-                    start_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_start_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
-                    end_time = datetime.strptime(self.collector.daily_forecasts_data["data"][self.day]["uv_end_time"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=utc).astimezone(local)
-                    return (
-                        f'Sun protection recommended from {start_time.strftime("%-I:%M%p").lower()} to '
-                        f'{end_time.strftime("%-I:%M%p").lower()}, UV Index predicted to reach '
-                        f'{self.collector.daily_forecasts_data["data"][self.day]["uv_max_index"]} '
-                        f'[{self.collector.daily_forecasts_data["data"][self.day]["uv_category"].replace("veryhigh", "very high").title()}]'
-                    )
+                category = uv_category.replace("veryhigh", "very high").title()
+                max_index = day_data.get("uv_max_index")
+                no_protection_required = (
+                    f"Sun protection not required, UV Index predicted to reach "
+                    f"{max_index} [{category}]"
+                )
+
+                # BOM omits both UV times overnight and outside the UV season,
+                # and has been seen returning one of the pair without the other.
+                local = ZoneInfo(self.collector.locations_data["data"]["timezone"])
+                try:
+                    start_time = parse_iso_datetime(day_data.get("uv_start_time")).astimezone(local)
+                    end_time = parse_iso_datetime(day_data.get("uv_end_time")).astimezone(local)
+                except ValueError:
+                    return no_protection_required
+
+                return (
+                    f"Sun protection recommended from {format_short_time(start_time)} to "
+                    f"{format_short_time(end_time)}, UV Index predicted to reach "
+                    f"{max_index} [{category}]"
+                )
             new_state = self.collector.daily_forecasts_data["data"][self.day][self.sensor_name]
 
             if isinstance(new_state, str) and len(new_state) > MAX_STATE_LENGTH:
