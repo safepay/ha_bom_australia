@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import aiohttp
 import asyncio
+import copy
 import logging
 import math
 import time
@@ -85,8 +86,12 @@ class Collector:
                 async with self._session.get(url, headers=HEADERS) as response:
                     if response.status == 200:
                         data = await response.json()
-                        # Update cache with new data and timestamp
-                        self._cache[cache_key]["data"] = data
+                        # Cache a pristine copy, not the object we hand back.
+                        # Callers reshape the response in place (flatten_dict
+                        # pops "rain", "uv" and friends), so sharing one object
+                        # would leave the cache already flattened and make a
+                        # later replay raise KeyError in the formatters.
+                        self._cache[cache_key]["data"] = copy.deepcopy(data)
                         self._cache[cache_key]["timestamp"] = time.time()
                         return data
                     else:
@@ -113,7 +118,10 @@ class Collector:
                         _LOGGER.info(
                             f"Returning cached {cache_key} data from {int(cache_age/60)} minutes ago"
                         )
-                        return cached
+                        # Copy on the way out too, so the caller's in-place
+                        # reshaping does not corrupt the cache for the next
+                        # replay.
+                        return copy.deepcopy(cached)
                     else:
                         _LOGGER.error(f"No cached {cache_key} data available")
                         return None
