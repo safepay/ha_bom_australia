@@ -2,20 +2,22 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Final
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     ATTR_DATE,
     ATTR_STATE,
 )
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from zoneinfo import ZoneInfo
@@ -44,8 +46,6 @@ from .const import (
     ATTR_API_CONDITION,
     ATTR_API_EXTENDED_TEXT,
     ATTR_API_FIRE_DANGER,
-    MAP_CONDITION,
-    CONDITION_FRIENDLY,
 )
 from .PyBoM.collector import Collector
 from .PyBoM.helpers import parse_iso_datetime
@@ -189,11 +189,12 @@ async def async_setup_entry(
 class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
     """Base representation of a BOM Sensor."""
 
+    _attr_attribution = ATTRIBUTION
+
     def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription, device_type: str = "Sensors") -> None:
         """Initialize the sensor."""
         super().__init__(hass_data[COORDINATOR])
         self.collector: Collector = hass_data[COLLECTOR]
-        self.coordinator: BomDataUpdateCoordinator = hass_data[COORDINATOR]
         self.location_name: str = location_name
         self.entity_prefix: str = entity_prefix
         self.sensor_name: str = sensor_name
@@ -210,20 +211,6 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
             model=MODEL_NAME,
             name=f"BOM {self.location_name} {device_type}",
         )
-
-    async def async_added_to_hass(self) -> None:
-        """Set up a listener and load data."""
-        self.async_on_remove(self.coordinator.async_add_listener(self._update_callback))
-        self._update_callback()
-
-    @callback
-    def _update_callback(self) -> None:
-        self.async_write_ha_state()
-
-    @property
-    def should_poll(self) -> bool:
-        """Entities do not individually poll."""
-        return False
 
 
 class ObservationSensor(SensorBase):
@@ -244,9 +231,9 @@ class ObservationSensor(SensorBase):
         attr = {}
 
         if not self.collector.locations_data or "data" not in self.collector.locations_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+            return attr
         if not self.collector.observations_data or "metadata" not in self.collector.observations_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
+            return attr
 
         tzinfo = ZoneInfo(self.collector.locations_data["data"]["timezone"])
         for key in self.collector.observations_data["metadata"]:
@@ -256,7 +243,6 @@ class ObservationSensor(SensorBase):
                 attr[key] = self.collector.observations_data["metadata"][key]
 
         attr.update(self.collector.observations_data["data"]["station"])
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
 
         # Add extended forecast text for condition sensor
         if self.sensor_name == ATTR_API_CONDITION:
@@ -350,7 +336,6 @@ class ForecastSensor(SensorBase):
                     attr[key] = parse_iso_datetime(self.collector.daily_forecasts_data["metadata"][key]).astimezone(tzinfo).isoformat()
                 except ValueError:
                     attr[key] = self.collector.daily_forecasts_data["metadata"][key]
-            attr[ATTR_ATTRIBUTION] = ATTRIBUTION
             attr[ATTR_DATE] = parse_iso_datetime(self.collector.daily_forecasts_data["data"][self.day]["date"]).astimezone(tzinfo).isoformat()
             if (self.sensor_name == "fire_danger") and (self.current_state is not None):
                 # Safely get fire_danger_category (may be null after ~4pm, but restored by coordinator)
@@ -442,10 +427,8 @@ class NowLaterSensor(SensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the sensor."""
         if not self.collector.daily_forecasts_data or "metadata" not in self.collector.daily_forecasts_data:
-            return {ATTR_ATTRIBUTION: ATTRIBUTION}
-        attr = dict(self.collector.daily_forecasts_data["metadata"])
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
-        return attr
+            return {}
+        return dict(self.collector.daily_forecasts_data["metadata"])
 
     @property
     def state(self) -> Any:
@@ -499,7 +482,6 @@ class WarningsSensor(SensorBase):
             if "metadata" in self.collector.warnings_data:
                 attr["response_timestamp"] = self.collector.warnings_data["metadata"].get("response_timestamp")
 
-        attr[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attr
 
     @property
