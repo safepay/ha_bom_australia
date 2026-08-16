@@ -66,6 +66,7 @@ Individual binary sensors for different warning types (matching BOM API):
 - Bushwalkers Alert
 - Fire Weather Warning
 - Tropical Cyclone Warning
+- Road Weather Alert
 
 Each binary sensor includes:
 - On/off state based on active warnings (excludes only cancelled warnings)
@@ -73,6 +74,11 @@ Each binary sensor includes:
 - Severity and warning group type in attributes
 - Issue and expiry times
 - Detailed warning information
+
+New warning types are off by default on existing installations, because the
+selection made during setup is stored with the config entry. To pick up a
+warning type added by a later release, open the integration's `Configure`
+dialog and tick it on the warning sensors page.
 
 ### 3. Sensors (Observations & Forecasts)
 Regular sensors for:

@@ -325,12 +325,12 @@ The following table shows all known BOM warning types and their support status i
 | `hazardous_surf_warning` | ✅ Supported | Hazardous Surf Warning |
 | `heatwave_warning` | ✅ Supported | Heatwave Warning |
 | `marine_wind_warning` | ✅ Supported | Marine Wind Warning |
+| `road_weather_alert` | ✅ Supported | Road Weather Alert |
 | `severe_thunderstorm_warning` | ✅ Supported | Severe Thunderstorm Warning |
 | `severe_weather_warning` | ✅ Supported | Severe Weather Warning |
 | `sheep_graziers_warning` | ✅ Supported | Sheep Graziers Warning |
 | `tropical_cyclone_warning` | ✅ Supported | Tropical Cyclone Warning |
 | `squall_warning` | ❌ Not Supported | Squall Warning |
-| `road_weather_alert` | ❌ Not Supported | Road Weather Alert |
 | `coastal_hazard_warning` | ❌ Not Supported | Coastal Hazard Warning |
 | `ocean_wind_warning` | ❌ Not Supported | Ocean Wind Warning |
 | `tsunami_alert` | ❌ Not Supported | Tsunami Alert |
