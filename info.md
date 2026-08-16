@@ -23,7 +23,7 @@ A comprehensive weather entity that combines both daily and hourly forecasts in 
 
 ### 2. Binary Sensors (Warnings)
 Individual binary sensors for different warning types (matching BOM API):
-- Flood Watch, Flood Warning, Sheep Graziers Warning, Severe Thunderstorm Warning, Severe Weather Warning, Marine Wind Warning, Hazardous Surf Warning, Heatwave Warning, Frost Warning, Bushwalkers Alert, Fire Weather Warning, Tropical Cyclone Warning
+- Flood Watch, Flood Warning, Sheep Graziers Warning, Severe Thunderstorm Warning, Severe Weather Warning, Marine Wind Warning, Hazardous Surf Warning, Heatwave Warning, Frost Warning, Bushwalkers Alert, Fire Weather Warning, Tropical Cyclone Warning, Road Weather Alert
 - Each sensor includes on/off state, severity information, issue/expiry times, and detailed warning data
 
 ### 3. Sensors (Observations & Forecasts)
