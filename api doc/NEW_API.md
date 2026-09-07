@@ -27,7 +27,8 @@ The site also exposes `/products` (raw text bulletins) and a large `/mapping` tr
 | Auth | **None required today.** The path segment `apikey` is a red herring. |
 | Key header | The front-end supports `X-API-Key`, populated from Drupal settings. In production every one of those settings (`location_api_key`, `forecast_api_key`, `observation_api_key`, `warnings_api_key`, …) is an **empty string**, and requests with no header at all return 200. |
 | CORS | Permissive — browser calls from other origins succeed. |
-| Server-side | Works with a plain `curl`/`requests` call; no `Origin` or `Referer` needed. |
+| Server-side | Works from a plain `curl`/`requests` call; no `Origin` or `Referer` needed. **But set a User-Agent** — see the bot-manager row. |
+| Bot manager | `api.bom.gov.au` sits behind Akamai. A request sent with the *default* `curl/8.x` User-Agent is answered `404` with an HTML "your access is blocked … does not support web scraping" page, not JSON. Any other User-Agent — a browser string, or an application's own token — returns 200 with no header, cookie or challenge. The older `api.weather.bom.gov.au` host has no such filter. |
 | Format | JSON (`/products` is `text/plain`). |
 | Times | **All timestamps are UTC**, ISO 8601 with `Z`. Local dates are derived from the `timezone` you pass or from the place's own timezone. |
 | Rate limits | None observed. Be polite: the site itself polls observations at roughly 1-minute resolution and forecasts every few hours. |
@@ -184,6 +185,33 @@ semicolon-separated, WKT `POINT(…)` and a 4-number bbox all return
 `422 DMP-E-0001 "Invalid coordinates"`. The site declares the endpoint but never
 calls it (its "Use location" button resolves through autocomplete instead).
 
+Note the parameter is `coordinate` on the way in but the validator reports it as
+`coordinates`; supplying the plural spelling instead gets
+`400 "Required parameter 'coordinate' is not present."`, so the mismatch is
+internal and not a way in.
+
+**Working around it.** Nothing here needs the endpoint if all you want is a
+forecast, because the forecast grid cell is a plain affine function of the
+coordinate. Fitting the ten capitals and large towns gives:
+
+```python
+x = round((longitude - 111.9967) / 0.0595964)
+y = round((latitude   + 44.9902) / 0.0499699)
+```
+
+That reproduces the `gridcells.forecast` returned by autocomplete for all ten
+test points exactly (Sydney, Parramatta, Melbourne, Brisbane, Perth, Hobart,
+Darwin, Adelaide, Cairns, Broome), and the latitude constants are recognisably
+0.05° from 45°S. It is a regression fit against a small sample, not a published
+constant: validate it more widely before relying on it, and note that being one
+cell out is a ~6 km error.
+
+This gets you `/forecasts/daily`, `/forecasts/1hourly` and `/forecasts/3hourly`
+from a bare coordinate, and `/warnings/list?area_type=coordinate` already takes
+one directly. It does **not** give you a `bom_stn_num` for observations or the
+aacs for `/forecasts/texts` — those still require a `place_id`, so a
+coordinate-only bootstrap cannot reach observations, precis text or fire danger.
+
 Two more location endpoints are declared in the front-end bundle. `/locations/places/exists`
 is routed but returns `422` for every parameter set tried, and `/locations/places/list`
 returns `404 No Mapping Rule matched`. Neither is called by the site.
@@ -282,8 +310,8 @@ curl 'https://api.bom.gov.au/apikey/v1/forecasts/daily-list/2026-09-08?place_id=
 ```json
 {
   "meta": { "issue_time_utc": "2026-09-07T17:22:31Z", "issue_time_next_utc": "2026-09-08T08:00:00Z" },
-  "fcst": {
-    "0": {
+  "fcst": [
+    {
       "date_utc": "2026-09-07T14:00:00Z",
       "place_id": "bnsw_pt131",
       "timezone": "Australia/Sydney",
@@ -298,13 +326,14 @@ curl 'https://api.bom.gov.au/apikey/v1/forecasts/daily-list/2026-09-08?place_id=
         "precip": { "any_probability_percent": 37, "exceeding_75percentchance_total_mm": 0, "exceeding_25percentchance_total_mm": 0.5 }
       } }
     },
-    "1": { "…": "…" }
-  }
+    { "…": "…" }
+  ]
 }
 ```
 
-`fcst` is an **object keyed by stringified index**, not an array — iterate
-`Object.values()`.
+`fcst` is a **plain array**, one entry per requested `place_id`, each carrying its
+own `place_id` and `timezone` so you can match responses back to your request
+rather than relying on order.
 
 ### 4.3 Hourly forecast — 8 days
 
@@ -312,14 +341,24 @@ curl 'https://api.bom.gov.au/apikey/v1/forecasts/daily-list/2026-09-08?place_id=
 GET /forecasts/1hourly/{grid_x}/{grid_y}?timezone={IANA tz}
 ```
 
-`fcst` is keyed `"0"`…`"7"` by day; each day has a `1hourly` array (18 entries on
-the first partial day, 24 on full days, fewer on the last).
+`fcst` is an **array of 8 day objects**, each with a `1hourly` array — 24 entries
+on a full day, fewer on the first (it starts at the next whole hour) and on the
+last (it ends at the edge of the forecast horizon). A run observed at 07:20 local
+gave day counts of 17, 24×6, 7 — 168 hours in total.
+
+**`1hourly` carries no rain.** Its `atm.surf_air` holds exactly `temp_cel`,
+`temp_apparent_cel`, `temp_dew_pt_cel`, `hum_relative_percent`, `wind` and
+`radiation` — there is no `precip` key on any entry, and no `weather`/`icon_code`
+either. Hourly rain probability and the hourly condition icon exist **only** in
+`/forecasts/3hourly`. The two endpoints are complementary, not
+higher- and lower-resolution versions of each other, so an hour-by-hour view with
+both temperature and rain has to join them (see §4.4).
 
 ```json
 {
   "meta": { "issue_time_utc": "2026-09-07T19:50:01Z", "issue_time_next_utc": "2026-09-08T06:00:00Z", "local_timezone": "Australia/Sydney" },
-  "fcst": {
-    "0": {
+  "fcst": [
+    {
       "date_utc": "2026-09-07T14:00:00Z",
       "1hourly": [
         {
@@ -342,7 +381,7 @@ the first partial day, 24 on full days, fewer on the last).
         }
       ]
     }
-  }
+  ]
 }
 ```
 
@@ -352,9 +391,11 @@ the first partial day, 24 on full days, fewer on the last).
 GET /forecasts/3hourly/{grid_x}/{grid_y}?timezone={IANA tz}
 ```
 
-Same day-keyed structure, array named `3hourly`, 7 blocks on a full day. This is
-the richest forecast payload — it carries rain, cloud, the split weather icons,
-fire danger and sea state:
+Same structure — `fcst` is an array of 8 day objects — with the inner array named
+`3hourly`, 8 blocks on a full day (56 in a run). This is the richer payload for
+*conditions*: it carries rain, cloud, the split weather icons, fire fuel dryness
+and sea state. It carries **no temperature and no wind**, which is exactly what
+`1hourly` has and this does not — see the note in §4.3:
 
 ```json
 {
@@ -403,7 +444,13 @@ Repeated `aac`. The site requests the whole set for a location at once, e.g.
 `NSW_FA001` (state), `NSW_ME011` (metropolitan), `NSW_PT131` (town).
 
 Returns one `fcst.daily[]` with a slot per text type; irrelevant slots are `null`,
-so merge across the aacs you asked for:
+so merge across the aacs you asked for. Note it returns **7 days**, one fewer than
+the 8 of `/forecasts/daily` — don't zip the two by index without checking.
+
+This endpoint is also the **only** source of the fire danger rating (§4.4's
+3-hourly `fire_danger` is fuel dryness, a different quantity). Ask with the
+`fire_district` aac from place details and read
+`terr.surf_land.fire_danger`:
 
 ```json
 {
@@ -428,11 +475,26 @@ so merge across the aacs you asked for:
         "heatwave": { "country_text": null, "link_map_image": null },
         "tropical_system_situation": { "coast_text": null }
       } },
-      "ocn": { "…": "…" }
+      "ocn": { "…": "…" },
+      "terr": { "surf_land": {
+        "fire_danger": {
+          "rating": {
+            "fire_district_code": "Moderate",
+            "public_district_code": null,
+            "fire_behaviour_index": 15
+          },
+          "locality_text": "Moderate",
+          "metropolitan_text": null, "public_district_text": null, "region_text": null
+        }
+      } }
     }]
   }
 }
 ```
+
+`rating.fire_district_code` is the rating word under the Australian Fire Danger
+Rating System (`Moderate`, `High`, `Extreme`, …) and `rating.fire_behaviour_index`
+is the numeric index behind it — the latter has no equivalent in the old API.
 
 ### 4.6 Sun times
 
@@ -852,7 +914,9 @@ Cache steps 1–2 permanently per configured location; only steps 3–8 need pol
 | `GET /locations/{geohash}` | `GET /locations/places/details/place/{place_id}` |
 | `GET /locations/{geohash}/observations` | `GET /observations/latest/{bom_stn_num}/atm/surf_air?include_qc_results=false` |
 | `GET /locations/{geohash}/forecasts/daily` | `GET /forecasts/daily/{x}/{y}?timezone=…` (+ `/forecasts/texts` for the wording) |
-| `GET /locations/{geohash}/forecasts/hourly` | `GET /forecasts/1hourly/{x}/{y}?timezone=…` and `/forecasts/3hourly/…` |
+| `GET /locations/{geohash}/forecasts/hourly` | `GET /forecasts/1hourly/{x}/{y}?timezone=…` **and** `/forecasts/3hourly/…` — both, see below |
+| `daily[].fire_danger` | `GET /forecasts/texts?aac={fire_district_aac}` → `terr.surf_land.fire_danger` |
+| `daily[].now` (now/later) | *no equivalent* |
 | `GET /locations/{geohash}/warnings` | `GET /warnings/list?area_type=coordinate&area_code={lon},{lat}` |
 | `GET /warnings/{id}` | `GET /warnings/warning/{id}` |
 | — | `GET /observations/recent/…` (time series), `/observations/extremes/latest/…`, `/forecasts/astro/…`, `/forecasts/tidal/…`, `/forecasts/daily-list/…` |
@@ -869,8 +933,23 @@ Behavioural differences worth planning for:
   observed wind direction is an ordinal string.
 - **Rain is a distribution**, not `amount.min`/`amount.max`.
 - **`timezone` is mandatory** on the grid forecast endpoints.
-- **Objects keyed by index** (`fcst["0"]`) appear in `daily-list`, `1hourly` and
-  `3hourly` — don't assume arrays.
+- **`fcst` is an array everywhere** — `daily`, `daily-list`, `1hourly` and
+  `3hourly` all return plain JSON arrays. (`daily-list` entries carry their own
+  `place_id`, so match on that rather than on position.)
+- **Hourly rain moved.** The old `/forecasts/hourly` gave temperature, wind *and*
+  rain on one hourly record. In the new API `1hourly` has no `precip` and no
+  icon, and `3hourly` has no temperature and no wind; reproducing the old record
+  means joining the two on time.
+- **No `now`/`later` block.** The old daily day-0 `now` object (`now_label`,
+  `temp_now`, `later_label`, `temp_later`, `is_night`) has no counterpart. The
+  underlying min/max are still there, but the "which comes next" logic and the
+  day/night flag have to be derived locally.
+- **Fire danger moved** from the daily forecast to `/forecasts/texts` under the
+  fire-district aac (§4.5), and gains `fire_behaviour_index`.
+- **UV category is not a field.** The old `uv.category` (`"high"`) is now only the
+  numeric `uv_clear_sky_max_code`, plus a prose sentence in
+  `radiation.advice_summary.locality_text` ("UV Index predicted to reach 5
+  [Moderate]"). Bucket the number yourself rather than parsing the sentence.
 - Poll on `meta.issue_time_next_utc` rather than a fixed schedule.
 
 ---
@@ -884,6 +963,17 @@ Behavioural differences worth planning for:
 - The old `api.weather.bom.gov.au/v1` host still returns live data as at
   8 September 2026, but the website no longer uses it. Historically that is the
   state an undocumented BOM endpoint is in shortly before it is switched off.
+- The new host is **bot-managed and the old one is not** (§1). Today the filter
+  only rejects the default `curl` User-Agent, but Akamai Bot Manager rules are
+  tuned server-side and without notice. Any client moving to `api.bom.gov.au`
+  should send a stable, identifying User-Agent and treat an HTML body with a
+  4xx status as "blocked", distinct from a JSON error.
+- **There is no rain-arrival or precipitation-onset field** anywhere in the new
+  API — no `arriv*`, `onset*` or "rain starting" element in any forecast
+  endpoint. The closest available signals are
+  `daily[0].precip.any_restofday_probability_percent` and the per-block
+  `precip_any_probability_percent` in `/forecasts/3hourly`, from which the first
+  block over a chosen threshold gives an arrival time at 3-hour granularity.
 - Empty objects and `null`s are common and meaningful (element not applicable at
   that place, or not yet issued). Handle them rather than treating them as errors.
 - Naming is inconsistent across endpoints (`any_probability_percent` vs
