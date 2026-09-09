@@ -1,8 +1,9 @@
 # Bureau of Meteorology — current website API
 
 The API behind the redesigned bom.gov.au (the React front-end at `www.bom.gov.au`).
-It replaces the older `api.weather.bom.gov.au/v1` geohash API — that host is still
-answering, but nothing on the new site calls it any more.
+It supersedes the older `api.weather.bom.gov.au/v1` geohash API on the web, but
+does not replace it outright: nothing on the new site calls that host any more,
+while the BOM Weather mobile app still uses it exclusively (§11).
 
 **Base URL**
 
@@ -16,7 +17,7 @@ The site also exposes `/products` (raw text bulletins) and a large `/mapping` tr
 
 > Undocumented and unsupported. Everything below was derived by observing the
 > traffic of www.bom.gov.au and probing the endpoints directly.
-> Last verified **8 September 2026 (AEST)**.
+> Last verified **10 September 2026 (AEST)**.
 
 ---
 
@@ -111,7 +112,16 @@ forecast-only integration you can go straight from a name to `/forecasts/daily`.
 ### 3.2 Place details — the lookup table
 
 ```
-GET /locations/places/details/place/{place_id}
+GET /locations/places/details/{type}/{id}
+```
+
+`{type}` is a path segment, not a fixed literal. Two are confirmed working:
+`place` with a `place_id`, and `bom_stn` with a `bom_stn_num` — the latter
+resolves a station straight to its coordinate, elevation, timezone and forecast
+grid cell without going through a place:
+
+```bash
+curl 'https://api.bom.gov.au/apikey/v1/locations/places/details/bom_stn/66214'
 ```
 
 | Param | Req | Notes |
@@ -212,9 +222,25 @@ one directly. It does **not** give you a `bom_stn_num` for observations or the
 aacs for `/forecasts/texts` — those still require a `place_id`, so a
 coordinate-only bootstrap cannot reach observations, precis text or fire danger.
 
-Two more location endpoints are declared in the front-end bundle. `/locations/places/exists`
-is routed but returns `422` for every parameter set tried, and `/locations/places/list`
-returns `404 No Mapping Rule matched`. Neither is called by the site.
+One more location endpoint is declared in the front-end bundle and could not be
+made to work: `/locations/places/exists` is routed but returns `422` for every
+parameter set tried.
+
+`/locations/places/list` **does** work, but only with an aac path segment —
+`GET /locations/places/list/{aac}` returns `200` with every place inside that
+area, each carrying its own coordinate, elevation and forecast grid cell.
+Bare `/locations/places/list` is a `404`.
+
+```bash
+curl 'https://api.bom.gov.au/apikey/v1/locations/places/list/NSW_PW005'
+```
+
+```json
+{ "aac": "NSW_PW005", "type": "public_district",
+  "children": [ { "id": "o117157279", "elevation": 65.0,
+                  "coordinate": { "longitude": 150.866703, "latitude": -33.869285 },
+                  "gridcells": { "forecast": { "x": "…", "y": "…" } } } ] }
+```
 
 ---
 
@@ -961,8 +987,9 @@ Behavioural differences worth planning for:
   start requiring the `X-API-Key` header at any time — the plumbing for that is
   already in the front-end.
 - The old `api.weather.bom.gov.au/v1` host still returns live data as at
-  8 September 2026, but the website no longer uses it. Historically that is the
-  state an undocumented BOM endpoint is in shortly before it is switched off.
+  10 September 2026, and although the website no longer uses it, **it is the live
+  backend for the current BOM Weather mobile app** (`au.gov.bom.metview` 6.14.0) —
+  see §11. It is therefore in active production use, not merely still answering.
 - The new host is **bot-managed and the old one is not** (§1). Today the filter
   only rejects the default `curl` User-Agent, but Akamai Bot Manager rules are
   tuned server-side and without notice. Any client moving to `api.bom.gov.au`
@@ -974,6 +1001,8 @@ Behavioural differences worth planning for:
   `daily[0].precip.any_restofday_probability_percent` and the per-block
   `precip_any_probability_percent` in `/forecasts/3hourly`, from which the first
   block over a chosen threshold gives an arrival time at 3-hour granularity.
+  The old API has no such field either, and the mobile app's "rain approaching"
+  alert does not come from an API at all (§11).
 - Empty objects and `null`s are common and meaningful (element not applicable at
   that place, or not yet issued). Handle them rather than treating them as errors.
 - Naming is inconsistent across endpoints (`any_probability_percent` vs
@@ -981,3 +1010,42 @@ Behavioural differences worth planning for:
   don't infer a path or field name — probe it, the error messages are explicit.
 - BOM material is licensed CC BY 4.0 with attribution requirements; check
   http://www.bom.gov.au/other/copyright.shtml before redistributing.
+
+---
+
+## 11. What the mobile app uses
+
+From the Retrofit path annotations in `au.gov.bom.metview` 6.14.0. Retrofit
+requires string literals, so this is the app's complete HTTP surface:
+
+```
+locations/{geohash}
+locations/{geohash}/forecasts/daily
+locations/{geohash}/forecasts/hourly
+locations/{geohash}/observations
+locations/{geohash}/warnings
+```
+
+All five are on `https://api.weather.bom.gov.au/v1` — the old geohash API. The
+app does not call `api.bom.gov.au` at all.
+
+One further endpoint on that host is undocumented but live:
+`GET /v1/app-version-support` returns `200` with
+`data.{latest_version, active_from_version, deprecated{from_version, end_date, heading, text}}`.
+
+**There is no rain-nowcast endpoint on either API.** The app's "rain approaching"
+notification (offering "up to 30 minutes notice") is not fetched:
+
+- it is gated by a Firebase Remote Config flag, `RAIN_NOTIFICATION`;
+- it is delivered by Firebase Cloud Messaging (`subscribeToTopic`), so the text
+  is composed server-side;
+- subscriptions are per saved location × alert type, in two families —
+  `warnings/...` and `storm-whisperer/...` (the latter covering rain, hail,
+  frost, fire weather, storm tide, haze and bushwalker alerts). Neither family's
+  path resolves on `api.weather.bom.gov.au`; the host is supplied at runtime.
+- the radar imagery is Mapbox-hosted on BOM's own account (style
+  `mapbox://styles/bom-dc-prod/…`, tilesets `BOM-RainRateStaticReference-Nowcast`
+  and `-Observation`), with tile URLs handed to the client at runtime.
+
+Nothing here is pollable by a third party: the rain nowcast is pushed, and its
+tiles are billed to BOM's Mapbox account.
