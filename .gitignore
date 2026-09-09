@@ -26,3 +26,8 @@ config/
 # OS
 .DS_Store
 Thumbs.db
+
+# Upstream APKs pulled apart for API discovery - not ours to redistribute
+*.apk
+*.apkm
+*.xapk
