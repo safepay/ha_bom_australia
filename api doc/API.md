@@ -166,7 +166,8 @@ Returns daily forecasts for the given geohash.
       "short_text": "Shower or two. Possible storm.",
       "rain": {
         "amount": { "min": 1, "max": 4, "units": "mm" },
-        "chance": 70
+        "chance": 70,
+        "chance_of_no_rain_category": "low"
       },
       "uv": {
         "category": "extreme",
@@ -199,10 +200,45 @@ Returns daily forecasts for the given geohash.
 - `icon_descriptor`: Weather condition (e.g., "sunny", "cloudy", "storm", "rain", "clear")
 - `now`: Only present for day 0 (today), contains current/later temperature labels and values
 - `fire_danger_category`: Contains color coding for fire danger visualization
+- `rain.chance_of_no_rain_category`: **Reads opposite to `rain.chance`.** It sits
+  inside the same `rain` object, but it categorises the chance of *no* rain, so a
+  sunny 0% day is `very high` and a 90% showers day is `very low`. Displaying it
+  beside `chance` without inverting or relabelling it states the opposite of the
+  forecast. Observed buckets, from 27 distinct chance/text combinations across 12
+  locations:
+
+  | `chance` (of rain) | `chance_of_no_rain_category` |
+  |---|---|
+  | 0-10% | `very high` |
+  | 20-30% | `high` |
+  | 40-60% | `medium` |
+  | 70-80% | `low` |
+  | 90% | `very low` |
+
+  The boundaries look symmetric, but 95% and 100% have never been observed, so
+  treat an inverted mapping as an inference rather than a documented scale.
 
 ## Hourly Forecasts
 
-Returns hourly forecasts for the given geohash (provided in 3-hourly intervals).
+Returns one entry per hour, but only some of the fields actually change hourly.
+Rain, the condition icon and wind direction are 3-hourly values repeated across
+the three hours of their block:
+
+| Varies every hour | Constant within the 3-hour block |
+|---|---|
+| `temp`, `temp_feels_like`, `relative_humidity`, `uv`, `wind.speed_kilometre`, `wind.gust_speed_kilometre` | `rain.chance`, `rain.amount.min`, `rain.amount.max`, `icon_descriptor`, `wind.direction` |
+
+Blocks are aligned to 3-hourly **UTC** marks (00:00, 03:00, 06:00 ...), so they
+fall on whole local hours only in the whole-hour timezones. In Adelaide and
+Darwin (UTC+9:30) a block boundary lands on a local half hour.
+
+`next_three_hourly_forecast_period` gives the time the current block **ends**.
+Note it now returns an ISO 8601 timestamp; older responses returned a word such
+as `"tonight"`, as in the sample below.
+
+Anything derived from `rain.chance` therefore has 3-hour resolution, not 1-hour.
+Reporting "rain from 14:00" because 14:00 is the first hour over a threshold
+overstates the precision: the block it belongs to may have opened at 13:00.
 
 **Endpoint:** `https://api.weather.bom.gov.au/v1/locations/{geohash}/forecasts/hourly`
 
