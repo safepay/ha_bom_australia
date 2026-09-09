@@ -554,8 +554,9 @@ class RainExpectedFromSensor(SensorBase):
         # Near-term chance, carried here rather than as its own entity: three
         # hours is the shortest window BOM's rain data actually resolves, and a
         # "next hour" figure would repeat this number with false precision.
+        hours = self._hours()
         near = [
-            h["rain_chance"] for h in self._hours()[:3]
+            h["rain_chance"] for h in hours[:3]
             if isinstance(h.get("rain_chance"), (int, float))
         ]
         attrs["chance_next_3_hours"] = max(near) if near else None
@@ -563,7 +564,12 @@ class RainExpectedFromSensor(SensorBase):
 
         block = self._first_wet_block()
         if block is None:
+            # A dry forecast and a missing one both leave the state empty, since
+            # a timestamp sensor has nowhere to put a word. Say which it was, so
+            # "no rain coming" is not mistaken for "we could not tell".
+            attrs["status"] = "none_expected" if hours else "no_data"
             return attrs
+        attrs["status"] = "expected"
         first = block[0]
         attrs["chance"] = first.get("rain_chance")
         attrs["rain_amount_min"] = first.get("rain_amount_min")
