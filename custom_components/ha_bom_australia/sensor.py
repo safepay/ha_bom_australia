@@ -46,7 +46,10 @@ from .const import (
     ATTR_API_CONDITION,
     ATTR_API_EXTENDED_TEXT,
     ATTR_API_FIRE_DANGER,
+    ATTR_API_RAIN_EXPECTED_FROM,
+    RAIN_EXPECTED_THRESHOLD_PERCENT,
 )
+from .PyBoM.const import rain_chance_category
 from .PyBoM.collector import Collector
 from .PyBoM.helpers import parse_iso_datetime
 
@@ -131,7 +134,24 @@ async def async_setup_entry(
 
         for day in forecast_days:
             for forecast in forecasts_monitored:
-                if forecast in [
+                if forecast == ATTR_API_RAIN_EXPECTED_FROM:
+                    # Looks across the whole hourly forecast rather than at one
+                    # day, so it is created once rather than once per day.
+                    if day == 0:
+                        new_entities.append(
+                            RainExpectedFromSensor(
+                                hass_data,
+                                location_name,
+                                entity_prefix,
+                                forecast,
+                                [
+                                    description
+                                    for description in FORECAST_SENSOR_TYPES
+                                    if description.key == forecast
+                                ][0],
+                            )
+                        )
+                elif forecast in [
                     ATTR_API_NOW_LABEL,
                     ATTR_API_TEMP_NOW,
                     ATTR_API_LATER_LABEL,
@@ -467,6 +487,108 @@ class NowLaterSensor(SensorBase):
         if not data:
             return None
         return data[0].get(self.sensor_name) if isinstance(data[0], dict) else None
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+
+
+class RainExpectedFromSensor(SensorBase):
+    """When rain is next expected, to the resolution BOM actually forecasts.
+
+    This is not a radar nowcast. It reads the hourly forecast,
+    whose rain fields are 3-hourly values repeated across the three hours of a
+    block, so the state is the start of the first block at or above
+    RAIN_EXPECTED_THRESHOLD_PERCENT: "rain is expected somewhere in the three
+    hours from here", not "rain starts at this minute". Reporting the first
+    qualifying *hour* instead would invent precision the data lacks, and would
+    drift later on every refresh as a block's earlier hours fell away.
+    """
+
+    def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
+        """Initialize the sensor."""
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
+
+    @property
+    def unique_id(self) -> str:
+        """Return Unique ID string."""
+        return f"{self.entity_prefix}_{self.sensor_name}"
+
+    def _hours(self) -> list[dict[str, Any]]:
+        """Return the hourly forecast entries."""
+        data = (self.collector.hourly_forecasts_data or {}).get("data")
+        return [h for h in data if isinstance(h, dict)] if data else []
+
+    def _first_wet_block(self) -> list[dict[str, Any]] | None:
+        """Return the hours of the first 3-hourly block that is wet enough.
+
+        Hours are grouped by ``next_three_hourly_forecast_period``, the time the
+        block ends, which is the only marker BOM gives for block membership. The
+        current block is normally partial — its earlier hours are in the past and
+        no longer returned — so the first hour of a group is "as early as this
+        block still goes", which is what should be reported.
+        """
+        block: list[dict[str, Any]] = []
+        block_end = None
+        for hour in self._hours():
+            end = hour.get("next_three_hourly_forecast_period")
+            if end != block_end:
+                if block and self._is_wet(block[0]):
+                    return block
+                block, block_end = [], end
+            block.append(hour)
+        return block if block and self._is_wet(block[0]) else None
+
+    @staticmethod
+    def _is_wet(hour: dict[str, Any]) -> bool:
+        """Whether this hour's block meets the threshold."""
+        chance = hour.get("rain_chance")
+        return isinstance(chance, (int, float)) and chance >= RAIN_EXPECTED_THRESHOLD_PERCENT
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the sensor."""
+        attrs: dict[str, Any] = {"threshold_percent": RAIN_EXPECTED_THRESHOLD_PERCENT}
+
+        # Near-term chance, carried here rather than as its own entity: three
+        # hours is the shortest window BOM's rain data actually resolves, and a
+        # "next hour" figure would repeat this number with false precision.
+        near = [
+            h["rain_chance"] for h in self._hours()[:3]
+            if isinstance(h.get("rain_chance"), (int, float))
+        ]
+        attrs["chance_next_3_hours"] = max(near) if near else None
+        attrs["category_next_3_hours"] = rain_chance_category(max(near)) if near else None
+
+        block = self._first_wet_block()
+        if block is None:
+            return attrs
+        first = block[0]
+        attrs["chance"] = first.get("rain_chance")
+        attrs["rain_amount_min"] = first.get("rain_amount_min")
+        attrs["rain_amount_max"] = first.get("rain_amount_max")
+        attrs["rain_amount_range"] = first.get("rain_amount_range")
+        # End of the block, so a template can render the window rather than a
+        # single time.
+        try:
+            attrs["window_end"] = parse_iso_datetime(first.get("next_three_hourly_forecast_period"))
+        except ValueError:
+            attrs["window_end"] = None
+        return attrs
+
+    @property
+    def native_value(self) -> Any:
+        """Return the start of the first block expected to be wet enough."""
+        block = self._first_wet_block()
+        if block is None:
+            # Nothing wet enough anywhere in the forecast. Unknown rather than a
+            # sentinel time, so history and templates read it as "no answer".
+            return None
+        try:
+            return parse_iso_datetime(block[0].get("time"))
+        except ValueError:
+            return None
 
     @property
     def name(self) -> str:
