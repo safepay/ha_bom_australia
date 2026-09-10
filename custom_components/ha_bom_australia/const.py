@@ -137,10 +137,9 @@ ATTR_API_ASTRONOMICAL_SUNSET_TIME: Final = "astronomical_sunset_time"
 ATTR_API_WARNINGS: Final = "warnings"
 
 # Forecast sensors that describe the whole forecast rather than one day of it.
-# They are created once, at day 0, and their entity id carries no day number.
-# sensor.py builds them, and async_unload_entry spells the same ids again when
-# it prunes the entity registry, so both read this list: a sensor built under
-# one name and kept under another is pruned on every reload.
+# They are created once, at day 0, and neither their unique id nor their entity
+# id carries a day number. sensor.py builds them, and async_unload_entry reads
+# the same list when it works out which registry entries survive a reload.
 DAY_INDEPENDENT_FORECAST_SENSORS: Final = (
     ATTR_API_NOW_LABEL,
     ATTR_API_TEMP_NOW,
@@ -148,6 +147,34 @@ DAY_INDEPENDENT_FORECAST_SENSORS: Final = (
     ATTR_API_TEMP_LATER,
     ATTR_API_RAIN_EXPECTED_FROM,
 )
+
+# Sensors every entry gets, whatever was selected in the options.
+LAST_UPDATED_SENSOR: Final = "last_updated"
+WARNINGS_SENSOR: Final = ATTR_API_WARNINGS
+
+
+# Unique ids. The entities build theirs with these, and async_unload_entry
+# builds the same ones to decide which registry entries survive a reload, so
+# the two cannot drift apart. The weather entity's unique id is the bare prefix.
+#
+# Pruning goes by unique id because entity ids are no use for it: they are
+# slugified from each entity's name, which carries the weather name rather than
+# the prefix, and the user can rename them. Changing any of these orphans every
+# existing entity built with it.
+def entity_unique_id(entity_prefix: str, key: str) -> str:
+    """Return the unique id of a sensor there is one of per entry."""
+    return f"{entity_prefix}_{key}"
+
+
+def forecast_unique_id(entity_prefix: str, day: int, key: str) -> str:
+    """Return the unique id of one day's forecast sensor."""
+    return f"{entity_prefix}_{day}_{key}"
+
+
+def warning_unique_id(entity_prefix: str, warning_type: str) -> str:
+    """Return the unique id of a warning binary sensor."""
+    return f"{entity_prefix}_warning_{warning_type}"
+
 
 OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(

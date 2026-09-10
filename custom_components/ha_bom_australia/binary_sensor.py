@@ -27,6 +27,7 @@ from .const import (
     SHORT_ATTRIBUTION,
     MODEL_NAME,
     WARNING_TYPES,
+    warning_unique_id,
 )
 from .PyBoM.collector import Collector
 
@@ -122,7 +123,7 @@ class BomWarningSensor(BinarySensorEntity):
     @property
     def unique_id(self) -> str:
         """Return unique ID string."""
-        return f"{self.entity_prefix}_warning_{self.warning_type}"
+        return warning_unique_id(self.entity_prefix, self.warning_type)
 
     @property
     def icon(self) -> str:

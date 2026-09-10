@@ -46,7 +46,11 @@ from .const import (
     ATTR_API_FIRE_DANGER,
     ATTR_API_RAIN_EXPECTED_FROM,
     DAY_INDEPENDENT_FORECAST_SENSORS,
+    LAST_UPDATED_SENSOR,
     RAIN_EXPECTED_THRESHOLD_PERCENT,
+    WARNINGS_SENSOR,
+    entity_unique_id,
+    forecast_unique_id,
 )
 from .PyBoM.const import rain_chance_category
 from .PyBoM.collector import Collector
@@ -244,7 +248,7 @@ class ObservationSensor(SensorBase):
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_{self.sensor_name}"
+        return entity_unique_id(self.entity_prefix, self.sensor_name)
 
     def _observations(self) -> dict[str, Any]:
         """Return the observations payload, or an empty dict when unavailable."""
@@ -340,7 +344,7 @@ class ForecastSensor(SensorBase):
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_{self.day}_{self.sensor_name}"
+        return forecast_unique_id(self.entity_prefix, self.day, self.sensor_name)
 
     def _day_forecast(self) -> dict[str, Any] | None:
         """Return this sensor's day of the daily forecast, or None when absent."""
@@ -467,7 +471,7 @@ class NowLaterSensor(SensorBase):
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_{self.sensor_name}"
+        return entity_unique_id(self.entity_prefix, self.sensor_name)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -509,7 +513,7 @@ class RainExpectedFromSensor(SensorBase):
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_{self.sensor_name}"
+        return entity_unique_id(self.entity_prefix, self.sensor_name)
 
     def _hours(self) -> list[dict[str, Any]]:
         """Return the hourly forecast entries."""
@@ -655,17 +659,17 @@ class LastUpdatedSensor(SensorBase):
     def __init__(self, hass_data, location_name, entity_prefix):
         """Initialize the sensor."""
         description = SensorEntityDescription(
-            key="last_updated",
+            key=LAST_UPDATED_SENSOR,
             name="Last Updated",
             device_class=SensorDeviceClass.TIMESTAMP,
             icon="mdi:clock-check-outline",
         )
-        super().__init__(hass_data, location_name, entity_prefix, "last_updated", description)
+        super().__init__(hass_data, location_name, entity_prefix, LAST_UPDATED_SENSOR, description)
 
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_last_updated"
+        return entity_unique_id(self.entity_prefix, self.sensor_name)
 
     def _times(self) -> dict[str, datetime]:
         """Return every timestamp BOM supplied, keyed ``<dataset>_<field>``."""
@@ -713,16 +717,16 @@ class WarningsSensor(SensorBase):
         """Initialize the sensor."""
         # Create a basic description for the warnings sensor
         description = SensorEntityDescription(
-            key="warnings",
+            key=WARNINGS_SENSOR,
             name="Warnings",
             icon="mdi:alert-circle",
         )
-        super().__init__(hass_data, location_name, entity_prefix, "warnings", description, device_type="Warnings")
+        super().__init__(hass_data, location_name, entity_prefix, WARNINGS_SENSOR, description, device_type="Warnings")
 
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
-        return f"{self.entity_prefix}_warnings"
+        return entity_unique_id(self.entity_prefix, self.sensor_name)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

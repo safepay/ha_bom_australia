@@ -13,7 +13,8 @@ should read as if written by the maintainer.
 
 - Never commit directly to `main`. Branch first, then merge via pull request.
 - Branch names: `<type>/<kebab-case-summary>`, e.g. `fix/weather-daily-partial-day`.
-- Commit subjects use conventional prefixes: `fix:`, `feat:`, `chore:`.
+- Commit subjects and pull request titles use conventional prefixes: `fix:`,
+  `feat:`, `chore:`.
 - Write a body when the *why* isn't obvious from the subject; skip it for trivia.
 
 ## Layout
@@ -45,11 +46,12 @@ custom_components/ha_bom_australia/
 - `Collector._fetch_with_retry` retries 3 times with exponential backoff and
   falls back to a per-endpoint in-memory cache, so a BOM outage degrades rather
   than blanking entities.
-- Entity IDs are built from `entity_prefix` (default `bom_<weather_name>`):
-  `weather.<prefix>`, `sensor.<prefix>_<observation>`,
-  `sensor.<prefix>_<day>_<forecast>`, `binary_sensor.<prefix>_warning_<type>`.
-  `async_unload_entry` prunes registry entries that no longer match the options,
-  so changing entity naming logic orphans users' entities — tread carefully.
+- Entity ids come from each entity's name, e.g.
+  `sensor.bom_<name>_<forecast>_<day>` (day last; weather cards rely on it).
+  Unique ids come from `entity_prefix`, via the helpers in `const.py`. Never
+  change either: it orphans users' entities.
+- `async_unload_entry` prunes registry entries by unique id. A new entity must
+  be added to `_configured_unique_ids` or it is pruned on every reload.
 
 ## Gotchas that have caused bugs before
 
