@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     ATTR_DATE,
     ATTR_STATE,
+    EntityCategory,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
@@ -169,6 +170,16 @@ async def async_setup_entry(
                             ][0],
                         )
                     )
+
+    # Always create the data-freshness sensor: it reports on whatever was
+    # fetched, so it is useful regardless of which sensors were selected.
+    new_entities.append(
+        LastUpdatedSensor(
+            hass_data,
+            location_name,
+            entity_prefix,
+        )
+    )
 
     # Always create catch-all warnings sensor (shows all warnings, even unknown types)
     new_entities.append(
@@ -472,6 +483,86 @@ class NowLaterSensor(SensorBase):
     def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+
+
+class LastUpdatedSensor(SensorBase):
+    """When BOM data was last retrieved, and how old each piece of it is.
+
+    The state is the newest ``response_timestamp`` across the datasets that were
+    fetched, as a timestamp — Home Assistant renders a timestamp device class in
+    RFC 3339. There is no single "last update" in the API: each endpoint carries
+    its own times, and they diverge by well over an hour in normal operation
+    (the hourly forecast is reissued far less often than the observations), so
+    every one is exposed as an attribute rather than collapsed into the state.
+
+    This also makes a degraded fetch visible. ``Collector`` falls back to a cache
+    up to 24 hours old when BOM is unreachable, which keeps entities populated
+    but silently stale; ``oldest_response`` is then much older than the state.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    # Collector attribute per dataset, and the prefix its times appear under.
+    _SOURCES = (
+        ("observations", "observations_data"),
+        ("daily", "daily_forecasts_data"),
+        ("hourly", "hourly_forecasts_data"),
+        ("warnings", "warnings_data"),
+    )
+    _TIME_KEYS = ("response_timestamp", "issue_time", "next_issue_time", "observation_time")
+
+    def __init__(self, hass_data, location_name, entity_prefix):
+        """Initialize the sensor."""
+        description = SensorEntityDescription(
+            key="last_updated",
+            name="Last Updated",
+            device_class=SensorDeviceClass.TIMESTAMP,
+            icon="mdi:clock-check-outline",
+        )
+        super().__init__(hass_data, location_name, entity_prefix, "last_updated", description)
+
+    @property
+    def unique_id(self) -> str:
+        """Return Unique ID string."""
+        return f"{self.entity_prefix}_last_updated"
+
+    def _times(self) -> dict[str, datetime]:
+        """Return every timestamp BOM supplied, keyed ``<dataset>_<field>``."""
+        found: dict[str, datetime] = {}
+        for label, attribute in self._SOURCES:
+            # BOM can send "metadata": null, and a dataset may not have been
+            # fetched at all, so neither the data nor the metadata is assumed.
+            metadata = (getattr(self.collector, attribute, None) or {}).get("metadata") or {}
+            for key in self._TIME_KEYS:
+                if key in metadata:
+                    try:
+                        found[f"{label}_{key}"] = parse_iso_datetime(metadata[key])
+                    except ValueError:
+                        continue
+        return found
+
+    @property
+    def native_value(self) -> Any:
+        """Return the most recent response timestamp across the datasets."""
+        responses = [
+            value for key, value in self._times().items()
+            if key.endswith("_response_timestamp")
+        ]
+        return max(responses) if responses else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return every timestamp, plus the oldest response for staleness."""
+        attrs: dict[str, Any] = dict(self._times())
+        responses = [v for k, v in attrs.items() if k.endswith("_response_timestamp")]
+        if responses:
+            attrs["oldest_response"] = min(responses)
+        return attrs
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return f"BOM {self.location_name} Last Updated"
 
 
 class WarningsSensor(SensorBase):
