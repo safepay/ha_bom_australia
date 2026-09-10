@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Final
 
@@ -39,14 +40,11 @@ from .const import (
     MODEL_NAME,
     OBSERVATION_SENSOR_TYPES,
     FORECAST_SENSOR_TYPES,
-    ATTR_API_NOW_LABEL,
-    ATTR_API_TEMP_NOW,
-    ATTR_API_LATER_LABEL,
-    ATTR_API_TEMP_LATER,
     ATTR_API_CONDITION,
     ATTR_API_EXTENDED_TEXT,
     ATTR_API_FIRE_DANGER,
     ATTR_API_RAIN_EXPECTED_FROM,
+    DAY_INDEPENDENT_FORECAST_SENSORS,
     RAIN_EXPECTED_THRESHOLD_PERCENT,
 )
 from .PyBoM.const import rain_chance_category
@@ -134,32 +132,19 @@ async def async_setup_entry(
 
         for day in forecast_days:
             for forecast in forecasts_monitored:
-                if forecast == ATTR_API_RAIN_EXPECTED_FROM:
-                    # Looks across the whole hourly forecast rather than at one
-                    # day, so it is created once rather than once per day.
+                if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
+                    # Describe the whole forecast rather than one day of it, so
+                    # they are created once, and their entity id carries no day
+                    # number. async_unload_entry reads the same list when it
+                    # prunes the registry, so the two agree on the id.
                     if day == 0:
-                        new_entities.append(
-                            RainExpectedFromSensor(
-                                hass_data,
-                                location_name,
-                                entity_prefix,
-                                forecast,
-                                [
-                                    description
-                                    for description in FORECAST_SENSOR_TYPES
-                                    if description.key == forecast
-                                ][0],
-                            )
+                        sensor_class = (
+                            RainExpectedFromSensor
+                            if forecast == ATTR_API_RAIN_EXPECTED_FROM
+                            else NowLaterSensor
                         )
-                elif forecast in [
-                    ATTR_API_NOW_LABEL,
-                    ATTR_API_TEMP_NOW,
-                    ATTR_API_LATER_LABEL,
-                    ATTR_API_TEMP_LATER,
-                ]:
-                    if day == 0:
                         new_entities.append(
-                            NowLaterSensor(
+                            sensor_class(
                                 hass_data,
                                 location_name,
                                 entity_prefix,
@@ -520,25 +505,35 @@ class RainExpectedFromSensor(SensorBase):
         data = (self.collector.hourly_forecasts_data or {}).get("data")
         return [h for h in data if isinstance(h, dict)] if data else []
 
+    def _blocks(self) -> Iterator[list[dict[str, Any]]]:
+        """Group the hourly entries into the 3-hourly blocks they belong to.
+
+        Hours are grouped by ``next_three_hourly_forecast_period``, the time the
+        block ends, which is the only marker BOM gives for block membership. An
+        hour whose marker is missing cannot be placed in a block, so it never
+        matches and stands alone: better to report it at hour precision than to
+        fold it into a neighbouring block it may have nothing to do with.
+        """
+        block: list[dict[str, Any]] = []
+        block_end: Any = None
+        for hour in self._hours():
+            end = hour.get("next_three_hourly_forecast_period")
+            if end is None or end != block_end:
+                if block:
+                    yield block
+                block, block_end = [], end
+            block.append(hour)
+        if block:
+            yield block
+
     def _first_wet_block(self) -> list[dict[str, Any]] | None:
         """Return the hours of the first 3-hourly block that is wet enough.
 
-        Hours are grouped by ``next_three_hourly_forecast_period``, the time the
-        block ends, which is the only marker BOM gives for block membership. The
-        current block is normally partial — its earlier hours are in the past and
-        no longer returned — so the first hour of a group is "as early as this
+        The current block is normally partial — its earlier hours are in the past
+        and no longer returned — so the first hour of a group is "as early as this
         block still goes", which is what should be reported.
         """
-        block: list[dict[str, Any]] = []
-        block_end = None
-        for hour in self._hours():
-            end = hour.get("next_three_hourly_forecast_period")
-            if end != block_end:
-                if block and self._is_wet(block[0]):
-                    return block
-                block, block_end = [], end
-            block.append(hour)
-        return block if block and self._is_wet(block[0]) else None
+        return next((block for block in self._blocks() if self._is_wet(block[0])), None)
 
     @staticmethod
     def _is_wet(hour: dict[str, Any]) -> bool:
@@ -553,21 +548,35 @@ class RainExpectedFromSensor(SensorBase):
 
         # Near-term chance, carried here rather than as its own entity: three
         # hours is the shortest window BOM's rain data actually resolves, and a
-        # "next hour" figure would repeat this number with false precision.
+        # "next hour" figure would repeat this number with false precision. Read
+        # from the first block rather than the next three entries: the current
+        # block is normally partial, so a flat slice of three straddles two
+        # blocks and mixes chances that belong to different windows.
         hours = self._hours()
-        near = [
-            h["rain_chance"] for h in hours[:3]
-            if isinstance(h.get("rain_chance"), (int, float))
-        ]
-        attrs["chance_next_3_hours"] = max(near) if near else None
-        attrs["category_next_3_hours"] = rain_chance_category(max(near)) if near else None
+        near = next(self._blocks(), [])
+        chance_near = next(
+            (
+                hour["rain_chance"]
+                for hour in near
+                if isinstance(hour.get("rain_chance"), (int, float))
+            ),
+            None,
+        )
+        attrs["chance_next_3_hours"] = chance_near
+        attrs["category_next_3_hours"] = rain_chance_category(chance_near)
 
         block = self._first_wet_block()
         if block is None:
             # A dry forecast and a missing one both leave the state empty, since
             # a timestamp sensor has nowhere to put a word. Say which it was, so
-            # "no rain coming" is not mistaken for "we could not tell".
-            attrs["status"] = "none_expected" if hours else "no_data"
+            # "no rain coming" is not mistaken for "we could not tell". Entries
+            # that carry no chance at all are the second case: BOM returned
+            # hours, but none of them says whether rain is coming.
+            attrs["status"] = (
+                "none_expected"
+                if any(isinstance(h.get("rain_chance"), (int, float)) for h in hours)
+                else "no_data"
+            )
             return attrs
         attrs["status"] = "expected"
         first = block[0]

@@ -28,6 +28,7 @@ from .const import (
     CONF_WARNINGS_MONITORED,
     CONF_WEATHER_NAME,
     COORDINATOR,
+    DAY_INDEPENDENT_FORECAST_SENSORS,
     DOMAIN,
     UPDATE_LISTENER,
 )
@@ -140,12 +141,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         for day in forecast_days:
             for forecast in entry.options.get(CONF_FORECASTS_MONITORED, []):
-                if forecast in [
-                    "now_label",
-                    "temp_now",
-                    "later_label",
-                    "temp_later",
-                ]:
+                if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
                     if day == 0:
                         entities_to_keep.append(
                             f"sensor.{entity_prefix}_{str(forecast).lower()}"

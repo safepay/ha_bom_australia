@@ -136,6 +136,19 @@ ATTR_API_ASTRONOMICAL_SUNRISE_TIME: Final = "astronomical_sunrise_time"
 ATTR_API_ASTRONOMICAL_SUNSET_TIME: Final = "astronomical_sunset_time"
 ATTR_API_WARNINGS: Final = "warnings"
 
+# Forecast sensors that describe the whole forecast rather than one day of it.
+# They are created once, at day 0, and their entity id carries no day number.
+# sensor.py builds them, and async_unload_entry spells the same ids again when
+# it prunes the entity registry, so both read this list: a sensor built under
+# one name and kept under another is pruned on every reload.
+DAY_INDEPENDENT_FORECAST_SENSORS: Final = (
+    ATTR_API_NOW_LABEL,
+    ATTR_API_TEMP_NOW,
+    ATTR_API_LATER_LABEL,
+    ATTR_API_TEMP_LATER,
+    ATTR_API_RAIN_EXPECTED_FROM,
+)
+
 OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key=ATTR_API_CONDITION,
