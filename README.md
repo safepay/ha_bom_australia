@@ -85,6 +85,8 @@ Regular sensors for:
 - Current observations (temperature, humidity, wind speed, rainfall, etc.)
 - Calculated observation sensors (dew point, delta-T)
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
+- Rain Likelihood: each forecast day's chance of rain in words (Very Low through Very High)
+- Rain Expected From: when rain is next expected, as the start of the first 3-hourly forecast block at or above a 20% chance, with the chance and expected amount as attributes
 - Astronomical data (sunrise/sunset times)
 - Handles the "null" value for today's minimum forecast temperature that the API produces late each day
 
