@@ -501,6 +501,10 @@ class LastUpdatedSensor(SensorBase):
     """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Off unless asked for. It answers "is the data stale", which most
+    # installations never need to ask, and it would otherwise appear
+    # unannounced on every existing install.
+    _attr_entity_registry_enabled_default = False
 
     # Collector attribute per dataset, and the prefix its times appear under.
     _SOURCES = (

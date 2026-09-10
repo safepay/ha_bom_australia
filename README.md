@@ -86,6 +86,7 @@ Regular sensors for:
 - Calculated observation sensors (dew point, delta-T)
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)
+- Last Updated: a diagnostic sensor for when BoM data was last retrieved, with each endpoint's times as attributes. Disabled by default; enable it on the integration's entity list
 - Handles the "null" value for today's minimum forecast temperature that the API produces late each day
 
 ## Recent Changes
