@@ -34,6 +34,12 @@ CONF_WARNINGS_MONITORED: Final = "warnings_monitored"
 
 DEFAULT_FORECAST_DAYS: Final = [0, 1, 2, 3, 4]  # Default to 5 days (0-4)
 
+# Chance of rain, in percent, at or above which rain counts as "expected".
+# BOM's floor for a dry block is 5%, so anything lower would leave the sensor
+# reading "rain soon" almost permanently. A constant rather than an option for
+# now; promote it if it earns the config UI.
+RAIN_EXPECTED_THRESHOLD_PERCENT: Final = 20
+
 COORDINATOR: Final = "coordinator"
 DOMAIN: Final = "ha_bom_australia"
 
@@ -116,6 +122,11 @@ ATTR_API_RAIN_AMOUNT_MIN: Final = "rain_amount_min"
 ATTR_API_RAIN_AMOUNT_MAX: Final = "rain_amount_max"
 ATTR_API_RAIN_AMOUNT_RANGE: Final = "rain_amount_range"
 ATTR_API_RAIN_CHANCE: Final = "rain_chance"
+# Worded chance of rain, derived in the collector from rain_chance. Not BOM's
+# rain_chance_of_no_rain_category, which describes the opposite (see
+# PyBoM.const.rain_chance_category).
+ATTR_API_RAIN_CHANCE_CATEGORY: Final = "rain_chance_category"
+ATTR_API_RAIN_EXPECTED_FROM: Final = "rain_expected_from"
 ATTR_API_FIRE_DANGER: Final = "fire_danger"
 ATTR_API_NOW_LABEL: Final = "now_label"
 ATTR_API_TEMP_NOW: Final = "temp_now"
@@ -124,6 +135,19 @@ ATTR_API_TEMP_LATER: Final = "temp_later"
 ATTR_API_ASTRONOMICAL_SUNRISE_TIME: Final = "astronomical_sunrise_time"
 ATTR_API_ASTRONOMICAL_SUNSET_TIME: Final = "astronomical_sunset_time"
 ATTR_API_WARNINGS: Final = "warnings"
+
+# Forecast sensors that describe the whole forecast rather than one day of it.
+# They are created once, at day 0, and their entity id carries no day number.
+# sensor.py builds them, and async_unload_entry spells the same ids again when
+# it prunes the entity registry, so both read this list: a sensor built under
+# one name and kept under another is pruned on every reload.
+DAY_INDEPENDENT_FORECAST_SENSORS: Final = (
+    ATTR_API_NOW_LABEL,
+    ATTR_API_TEMP_NOW,
+    ATTR_API_LATER_LABEL,
+    ATTR_API_TEMP_LATER,
+    ATTR_API_RAIN_EXPECTED_FROM,
+)
 
 OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
@@ -303,6 +327,17 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Rain Probability",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:water-percent",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_RAIN_CHANCE_CATEGORY,
+        name="Rain Likelihood",
+        icon="mdi:weather-cloudy-clock",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_RAIN_EXPECTED_FROM,
+        name="Rain Expected From",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:weather-rainy",
     ),
     SensorEntityDescription(
         key=ATTR_API_FIRE_DANGER,
