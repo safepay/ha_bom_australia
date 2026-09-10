@@ -105,7 +105,7 @@ Regular sensors for:
 
 1. **Warning Sensors**: Warning sensors have been completely redesigned:
    - **Old**: Single `sensor.bom_warnings` with list of warnings in attributes
-   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.{prefix}_warning_flood`)
+   - **New**: Individual binary sensors for each warning type (e.g., `binary_sensor.bom_{location}_flood_warning`)
    - Old warning sensors will need to be removed manually from your configuration
 
 2. **Forecast Sensors**: Configuration has changed:

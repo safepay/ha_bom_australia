@@ -30,7 +30,13 @@ from .const import (
     COORDINATOR,
     DAY_INDEPENDENT_FORECAST_SENSORS,
     DOMAIN,
+    LAST_UPDATED_SENSOR,
     UPDATE_LISTENER,
+    WARNING_TYPES,
+    WARNINGS_SENSOR,
+    entity_unique_id,
+    forecast_unique_id,
+    warning_unique_id,
 )
 from .PyBoM.collector import Collector
 
@@ -99,72 +105,71 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Remove unconfigured entities and unload the config entry."""
+def _configured_unique_ids(entry: ConfigEntry) -> set[tuple[str, str]]:
+    """Return (domain, unique id) for every entity the entry's settings create.
 
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    This mirrors what the platforms' async_setup_entry builds, including their
+    fallback from options to data: the initial config flow saves its selections
+    to data, and options stays empty until the options flow is first saved.
+    A unique id missing here is removed from the registry on every reload.
+    """
 
-    entity_registry = er.async_get(hass)
-    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
-    entities_to_keep = []
+    def setting(key: str, default: Any = None) -> Any:
+        return entry.options.get(key, entry.data.get(key, default))
 
-    # Get entity prefix (shared across all entities)
-    location_name = entry.options.get(
-        CONF_WEATHER_NAME, entry.data.get(CONF_WEATHER_NAME, "Home")
-    )
-    entity_prefix = entry.options.get(
+    location_name = setting(CONF_WEATHER_NAME, "Home")
+    entity_prefix = setting(
         CONF_ENTITY_PREFIX,
-        entry.data.get(
-            CONF_ENTITY_PREFIX,
-            f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}"
-        )
+        f"bom_{location_name.lower().replace(' ', '_').replace('-', '_')}",
     )
 
-    # Keep the weather entity
-    entities_to_keep.append(f"weather.{entity_prefix}")
+    keep = {
+        ("weather", entity_prefix),
+        # Created whatever was selected.
+        ("sensor", entity_unique_id(entity_prefix, LAST_UPDATED_SENSOR)),
+        ("sensor", entity_unique_id(entity_prefix, WARNINGS_SENSOR)),
+    }
 
-    # if observations are enabled, keep the configured observation sensors
-    if entry.options.get(CONF_OBSERVATIONS_CREATE) is True:
-        for observation in entry.options.get(CONF_OBSERVATIONS_MONITORED, []):
-            entities_to_keep.append(
-                f"sensor.{entity_prefix}_{str(observation).lower()}"
-            )
+    if setting(CONF_OBSERVATIONS_CREATE) is True:
+        for observation in setting(CONF_OBSERVATIONS_MONITORED) or []:
+            keep.add(("sensor", entity_unique_id(entity_prefix, observation)))
 
-    # if forecasts are enabled, keep the configured forecast sensors
-    if entry.options.get(CONF_FORECASTS_CREATE) is True:
-        forecast_days = entry.options.get(CONF_FORECASTS_DAYS, entry.data.get(CONF_FORECASTS_DAYS, []))
+    if setting(CONF_FORECASTS_CREATE) is True:
+        forecast_days = setting(CONF_FORECASTS_DAYS, [])
         # Handle legacy integer format
         if isinstance(forecast_days, int):
             forecast_days = list(range(0, forecast_days + 1))
         elif not isinstance(forecast_days, list):
             forecast_days = []
 
-        for day in forecast_days:
-            for forecast in entry.options.get(CONF_FORECASTS_MONITORED, []):
-                if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
-                    if day == 0:
-                        entities_to_keep.append(
-                            f"sensor.{entity_prefix}_{str(forecast).lower()}"
-                        )
-                else:
-                    entities_to_keep.append(
-                        f"sensor.{entity_prefix}_{str(day)}_{str(forecast).lower()}"
-                    )
+        for forecast in setting(CONF_FORECASTS_MONITORED) or []:
+            if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
+                # Created once, and only when day 0 is among the days.
+                if 0 in forecast_days:
+                    keep.add(("sensor", entity_unique_id(entity_prefix, forecast)))
+            else:
+                for day in forecast_days:
+                    keep.add(("sensor", forecast_unique_id(entity_prefix, day, forecast)))
 
-    # if warnings are enabled, keep the warning binary sensors
-    if entry.options.get(CONF_WARNINGS_CREATE) is True:
-        warnings_monitored = entry.options.get(
-            CONF_WARNINGS_MONITORED,
-            entry.data.get(CONF_WARNINGS_MONITORED, [])
-        )
-        for warning_type in warnings_monitored:
-            entities_to_keep.append(f"binary_sensor.{entity_prefix}_warning_{warning_type}")
+    if setting(CONF_WARNINGS_CREATE, False):
+        for warning_type in setting(CONF_WARNINGS_MONITORED, list(WARNING_TYPES)):
+            keep.add(("binary_sensor", warning_unique_id(entity_prefix, warning_type)))
 
-    _LOGGER.debug("Keeping %s", entities_to_keep)
+    return keep
 
-    # remove any sensors that are not configured
-    for entity in entities:
-        if entity.entity_id not in entities_to_keep:
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Remove unconfigured entities and unload the config entry."""
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    entities_to_keep = _configured_unique_ids(entry)
+    _LOGGER.debug("Keeping %s", sorted(entities_to_keep))
+
+    # remove any entities that are not configured
+    entity_registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        if (entity.domain, entity.unique_id) not in entities_to_keep:
             entity_registry.async_remove(entity_id=entity.entity_id)
             _LOGGER.debug("Removing %s from entity registry", entity.entity_id)
 
