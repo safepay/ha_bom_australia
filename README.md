@@ -84,7 +84,7 @@ dialog and tick it on the warning sensors page.
 Regular sensors for:
 - Current observations (temperature, humidity, wind speed, rainfall, etc.)
 - Calculated observation sensors (dew point, delta-T)
-- Hours Until Rain: hours until the next 3-hour forecast block with a 20%+ chance of rain, 0 if that block is under way
+- Hours Until Rain: hours until the next 3-hour forecast block with rain forecast (a 20%+ chance and some amount), 0 if that block is under way
 - Next Rain Amount: the upper forecast rain amount (mm) for that block; attributes cover the whole rain event
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
 - Astronomical data (sunrise/sunset times)

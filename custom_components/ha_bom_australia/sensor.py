@@ -499,8 +499,9 @@ class RainSensorBase(SensorBase):
 
     This is not a radar nowcast. BOM's hourly forecast repeats one rain chance
     and amount across each 3-hour block, so the block is the finest resolution
-    there is. A block counts as wet at RAIN_EXPECTED_THRESHOLD_PERCENT or more,
-    and the event is the first run of consecutive wet blocks, which may include
+    there is. A block counts as wet at RAIN_EXPECTED_THRESHOLD_PERCENT or more
+    with some rain amount forecast, so Next Rain Amount never reads 0 while rain
+    is expected. The event is the first run of consecutive wet blocks, which may include
     the one under way. Both sensors read it through the same helpers, so they
     always describe the same event, and both move on to the next wet block as
     each one ends.
