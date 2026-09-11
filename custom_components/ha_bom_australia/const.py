@@ -36,8 +36,9 @@ CONF_WARNINGS_MONITORED: Final = "warnings_monitored"
 DEFAULT_FORECAST_DAYS: Final = [0, 1, 2, 3, 4]  # Default to 5 days (0-4)
 
 # Chance of rain, in percent, at or above which a 3-hourly forecast block counts
-# as wet for the Hours Until Rain and Next Rain Amount sensors. Dry blocks read
-# 0-10%, so anything lower would leave them reading "rain soon" almost
+# as wet for the Hours Until Rain and Next Rain Amount sensors, provided BOM also
+# forecasts some rain amount for it (see PyBoM.helpers.rain_event). Dry blocks
+# read 0-10%, so anything lower would leave them reading "rain soon" almost
 # permanently. A constant rather than an option for now; promote it if it earns
 # the config UI.
 RAIN_EXPECTED_THRESHOLD_PERCENT: Final = 20

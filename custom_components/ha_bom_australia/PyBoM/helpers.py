@@ -92,15 +92,26 @@ def rain_chunks(hours: Any, now: datetime) -> list[RainChunk]:
 
 
 def rain_event(chunks: list[RainChunk], threshold: int | float) -> list[RainChunk]:
-    """Return the next run of consecutive blocks at or above ``threshold``.
+    """Return the next run of consecutive wet blocks.
+
+    A block is wet at a chance of ``threshold`` or more, unless BOM forecasts no
+    rain amount for it. Its upper figure is the amount with a 25% chance of
+    being exceeded, so below a 25% chance it is always 0: those are the edges of
+    a system, where a shower is possible but no measurable rain is expected, and
+    counting them reports rain arriving with nothing to say how much. A missing
+    amount is unknown rather than none, so it does not rule a block out.
 
     The run starts at the first wet block, which may be the one under way, and
-    stops at the first block below the threshold or at a gap in the forecast.
-    Empty when no block reaches the threshold.
+    stops at the first block that is not wet or at a gap in the forecast.
+    Empty when no block is wet.
     """
     event: list[RainChunk] = []
     for chunk in chunks:
-        wet = chunk.chance is not None and chunk.chance >= threshold
+        wet = (
+            chunk.chance is not None
+            and chunk.chance >= threshold
+            and chunk.up_to != 0
+        )
         if event and (not wet or chunk.start != event[-1].end):
             break
         if wet:
