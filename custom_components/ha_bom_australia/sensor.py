@@ -232,15 +232,12 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
             name=f"BOM {self.location_name} {device_type}",
         )
 
-        # Home Assistant builds a new entity's id from its device name followed
-        # by the entity's own name, and only drops the device name when the
-        # entity name starts with it. Every name here already carries the
-        # location, so a new entity would be registered as
-        # sensor.bom_<name>_sensors_bom_<name>_temp. Setting the id here asks
-        # for the one entities were registered with before that, which is the
-        # pattern the weather cards rely on. It applies only when an entity is
-        # first created: anything already in the registry keeps its own id.
-        self.entity_id = f"sensor.{slugify(self.name)}"
+        # Home Assistant would otherwise build a new entity's id from the device
+        # name followed by the entity name. Ask for the id these have always
+        # had, which keeps the bom_ prefix the weather cards rely on even though
+        # the friendly name no longer shows it. It applies only when an entity
+        # is first created: anything already in the registry keeps its own id.
+        self.entity_id = f"sensor.{slugify(f'BOM {self.name}')}"
 
     def _timezone(self) -> ZoneInfo | None:
         """Return the BOM location's timezone, or None when it is unavailable."""
@@ -341,7 +338,7 @@ class ObservationSensor(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
 class ForecastSensor(SensorBase):
@@ -469,7 +466,7 @@ class ForecastSensor(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
+        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()} {self.day}"
 
 
 class NowLaterSensor(SensorBase):
@@ -502,7 +499,7 @@ class NowLaterSensor(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
 class RainSensorBase(SensorBase):
@@ -566,7 +563,7 @@ class RainSensorBase(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+        return f"{self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
 class HoursUntilRainSensor(RainSensorBase):
@@ -743,7 +740,7 @@ class LastUpdatedSensor(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} Last Updated"
+        return f"{self.location_name} Last Updated"
 
 
 class WarningsSensor(SensorBase):
@@ -799,4 +796,4 @@ class WarningsSensor(SensorBase):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} Warnings"
+        return f"{self.location_name} Warnings"

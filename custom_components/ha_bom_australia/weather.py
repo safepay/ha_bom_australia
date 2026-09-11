@@ -85,10 +85,9 @@ class WeatherBase(WeatherEntity):
             name=f"BOM {self.location_name}",
         )
 
-        # See SensorBase: the entity id is set here so a new entity does not
-        # have the device name prefixed to a name that already carries the
-        # location. An entity already in the registry keeps its own id.
-        self.entity_id = f"weather.{slugify(self.name)}"
+        # See SensorBase: the id keeps the bom_ prefix the friendly name no
+        # longer shows.
+        self.entity_id = f"weather.{slugify(f'BOM {self.name}')}"
 
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
@@ -285,7 +284,7 @@ class BomWeather(WeatherBase):
     @property
     def name(self) -> str:
         """Return the name."""
-        return f"BOM {self.location_name}"
+        return self.location_name
 
     @property
     def unique_id(self) -> str:
