@@ -84,9 +84,9 @@ dialog and tick it on the warning sensors page.
 Regular sensors for:
 - Current observations (temperature, humidity, wind speed, rainfall, etc.)
 - Calculated observation sensors (dew point, delta-T)
+- Hours Until Rain: hours until the next 3-hour forecast block with a 20%+ chance of rain, 0 if that block is under way
+- Next Rain Amount: the upper forecast rain amount (mm) for that block; attributes cover the whole rain event
 - Forecast data points (min/max temperature, UV index, rain chance, fire danger, etc.)
-- Rain Likelihood: each forecast day's chance of rain in words (Very Low through Very High)
-- Rain Expected From: when rain is next expected, as the start of the first 3-hourly forecast block at or above a 20% chance, with the chance and expected amount as attributes
 - Astronomical data (sunrise/sunset times)
 - Last Updated: a diagnostic sensor for when BoM data was last retrieved, with each endpoint's times as attributes. Disabled by default; enable it on the integration's entity list
 - Handles the "null" value for today's minimum forecast temperature that the API produces late each day

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Final
 
@@ -22,6 +21,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 from zoneinfo import ZoneInfo
 
 from . import BomDataUpdateCoordinator
@@ -44,7 +44,8 @@ from .const import (
     ATTR_API_CONDITION,
     ATTR_API_EXTENDED_TEXT,
     ATTR_API_FIRE_DANGER,
-    ATTR_API_RAIN_EXPECTED_FROM,
+    ATTR_API_HOURS_UNTIL_RAIN,
+    ATTR_API_NEXT_RAIN_AMOUNT,
     DAY_INDEPENDENT_FORECAST_SENSORS,
     LAST_UPDATED_SENSOR,
     RAIN_EXPECTED_THRESHOLD_PERCENT,
@@ -52,9 +53,8 @@ from .const import (
     entity_unique_id,
     forecast_unique_id,
 )
-from .PyBoM.const import rain_chance_category
 from .PyBoM.collector import Collector
-from .PyBoM.helpers import parse_iso_datetime
+from .PyBoM.helpers import RainChunk, parse_iso_datetime, rain_chunks, rain_event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,18 +105,26 @@ async def async_setup_entry(
             config_entry.data.get(CONF_OBSERVATIONS_MONITORED, None),
         )
 
-        for observation in observations:
+        # The rain sensors are chosen alongside the observations but read the
+        # hourly forecast, so they have classes of their own.
+        rain_sensors = {
+            ATTR_API_HOURS_UNTIL_RAIN: HoursUntilRainSensor,
+            ATTR_API_NEXT_RAIN_AMOUNT: NextRainAmountSensor,
+        }
+        descriptions = {description.key: description for description in OBSERVATION_SENSOR_TYPES}
+        for observation in observations or []:
+            description = descriptions.get(observation)
+            if description is None:
+                # Still in the stored selection, but no longer a sensor type.
+                continue
+            sensor_class = rain_sensors.get(observation, ObservationSensor)
             new_entities.append(
-                ObservationSensor(
+                sensor_class(
                     hass_data,
                     location_name,
                     entity_prefix,
                     observation,
-                    [
-                        description
-                        for description in OBSERVATION_SENSOR_TYPES
-                        if description.key == observation
-                    ][0],
+                    description,
                 )
             )
 
@@ -135,30 +143,26 @@ async def async_setup_entry(
         elif not isinstance(forecast_days, list):
             forecast_days = []
 
+        descriptions = {description.key: description for description in FORECAST_SENSOR_TYPES}
         for day in forecast_days:
-            for forecast in forecasts_monitored:
+            for forecast in forecasts_monitored or []:
+                description = descriptions.get(forecast)
+                if description is None:
+                    # Still in the stored selection, but no longer a sensor type.
+                    continue
                 if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
                     # Describe the whole forecast rather than one day of it, so
                     # they are created once, and their entity id carries no day
                     # number. async_unload_entry reads the same list when it
                     # prunes the registry, so the two agree on the id.
                     if day == 0:
-                        sensor_class = (
-                            RainExpectedFromSensor
-                            if forecast == ATTR_API_RAIN_EXPECTED_FROM
-                            else NowLaterSensor
-                        )
                         new_entities.append(
-                            sensor_class(
+                            NowLaterSensor(
                                 hass_data,
                                 location_name,
                                 entity_prefix,
                                 forecast,
-                                [
-                                    description
-                                    for description in FORECAST_SENSOR_TYPES
-                                    if description.key == forecast
-                                ][0],
+                                description,
                             )
                         )
                 else:
@@ -172,11 +176,7 @@ async def async_setup_entry(
                             entity_prefix,
                             day,
                             forecast,
-                            [
-                                description
-                                for description in FORECAST_SENSOR_TYPES
-                                if description.key == forecast
-                            ][0],
+                            description,
                         )
                     )
 
@@ -494,136 +494,160 @@ class NowLaterSensor(SensorBase):
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
 
 
-class RainExpectedFromSensor(SensorBase):
-    """When rain is next expected, to the resolution BOM actually forecasts.
+class RainSensorBase(SensorBase):
+    """Base for the sensors describing the next rain event in the hourly forecast.
 
-    This is not a radar nowcast. It reads the hourly forecast,
-    whose rain fields are 3-hourly values repeated across the three hours of a
-    block, so the state is the start of the first block at or above
-    RAIN_EXPECTED_THRESHOLD_PERCENT: "rain is expected somewhere in the three
-    hours from here", not "rain starts at this minute". Reporting the first
-    qualifying *hour* instead would invent precision the data lacks, and would
-    drift later on every refresh as a block's earlier hours fell away.
+    This is not a radar nowcast. BOM's hourly forecast repeats one rain chance
+    and amount across each 3-hour block, so the block is the finest resolution
+    there is. A block counts as wet at RAIN_EXPECTED_THRESHOLD_PERCENT or more,
+    and the event is the first run of consecutive wet blocks, which may include
+    the one under way. Both sensors read it through the same helpers, so they
+    always describe the same event, and both move on to the next wet block as
+    each one ends.
     """
 
     def __init__(self, hass_data, location_name, entity_prefix, sensor_name, description: SensorEntityDescription,):
         """Initialize the sensor."""
-        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Forecast Sensors")
+        super().__init__(hass_data, location_name, entity_prefix, sensor_name, description, device_type="Sensors")
 
     @property
     def unique_id(self) -> str:
         """Return Unique ID string."""
         return entity_unique_id(self.entity_prefix, self.sensor_name)
 
-    def _hours(self) -> list[dict[str, Any]]:
-        """Return the hourly forecast entries."""
-        data = (self.collector.hourly_forecasts_data or {}).get("data")
-        return [h for h in data if isinstance(h, dict)] if data else []
-
-    def _blocks(self) -> Iterator[list[dict[str, Any]]]:
-        """Group the hourly entries into the 3-hourly blocks they belong to.
-
-        Hours are grouped by ``next_three_hourly_forecast_period``, the time the
-        block ends, which is the only marker BOM gives for block membership. An
-        hour whose marker is missing cannot be placed in a block, so it never
-        matches and stands alone: better to report it at hour precision than to
-        fold it into a neighbouring block it may have nothing to do with.
-        """
-        block: list[dict[str, Any]] = []
-        block_end: Any = None
-        for hour in self._hours():
-            end = hour.get("next_three_hourly_forecast_period")
-            if end is None or end != block_end:
-                if block:
-                    yield block
-                block, block_end = [], end
-            block.append(hour)
-        if block:
-            yield block
-
-    def _first_wet_block(self) -> list[dict[str, Any]] | None:
-        """Return the hours of the first 3-hourly block that is wet enough.
-
-        The current block is normally partial — its earlier hours are in the past
-        and no longer returned — so the first hour of a group is "as early as this
-        block still goes", which is what should be reported.
-        """
-        return next((block for block in self._blocks() if self._is_wet(block[0])), None)
+    def _outlook(self) -> tuple[datetime, list[RainChunk], list[RainChunk]]:
+        """Return now, the blocks yet to end, and the next rain event among them."""
+        now = dt_util.utcnow()
+        chunks = rain_chunks((self.collector.hourly_forecasts_data or {}).get("data"), now)
+        return now, chunks, rain_event(chunks, RAIN_EXPECTED_THRESHOLD_PERCENT)
 
     @staticmethod
-    def _is_wet(hour: dict[str, Any]) -> bool:
-        """Whether this hour's block meets the threshold."""
-        chance = hour.get("rain_chance")
-        return isinstance(chance, (int, float)) and chance >= RAIN_EXPECTED_THRESHOLD_PERCENT
+    def _status(chunks: list[RainChunk], event: list[RainChunk]) -> str:
+        """Say whether rain is expected, not expected, or cannot be told.
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes of the sensor."""
-        attrs: dict[str, Any] = {"threshold_percent": RAIN_EXPECTED_THRESHOLD_PERCENT}
+        No rain coming and no forecast to go on both leave the state without an
+        event to describe; this says which, so the one is not mistaken for the
+        other.
+        """
+        if event:
+            return "expected"
+        if any(chunk.chance is not None for chunk in chunks):
+            return "none_expected"
+        return "no_data"
 
-        # Near-term chance, carried here rather than as its own entity: three
-        # hours is the shortest window BOM's rain data actually resolves, and a
-        # "next hour" figure would repeat this number with false precision. Read
-        # from the first block rather than the next three entries: the current
-        # block is normally partial, so a flat slice of three straddles two
-        # blocks and mixes chances that belong to different windows.
-        hours = self._hours()
-        near = next(self._blocks(), [])
-        chance_near = next(
-            (
-                hour["rain_chance"]
-                for hour in near
-                if isinstance(hour.get("rain_chance"), (int, float))
-            ),
-            None,
-        )
-        attrs["chance_next_3_hours"] = chance_near
-        attrs["category_next_3_hours"] = rain_chance_category(chance_near)
+    def _local(self, value: datetime) -> str:
+        """Return a time as ISO 8601 in the BOM location's timezone."""
+        tzinfo = self._timezone()
+        return (value.astimezone(tzinfo) if tzinfo else value).isoformat()
 
-        block = self._first_wet_block()
-        if block is None:
-            # A dry forecast and a missing one both leave the state empty, since
-            # a timestamp sensor has nowhere to put a word. Say which it was, so
-            # "no rain coming" is not mistaken for "we could not tell". Entries
-            # that carry no chance at all are the second case: BOM returned
-            # hours, but none of them says whether rain is coming.
-            attrs["status"] = (
-                "none_expected"
-                if any(isinstance(h.get("rain_chance"), (int, float)) for h in hours)
-                else "no_data"
-            )
-            return attrs
-        attrs["status"] = "expected"
-        first = block[0]
-        attrs["chance"] = first.get("rain_chance")
-        attrs["rain_amount_min"] = first.get("rain_amount_min")
-        attrs["rain_amount_max"] = first.get("rain_amount_max")
-        attrs["rain_amount_range"] = first.get("rain_amount_range")
-        # End of the block, so a template can render the window rather than a
-        # single time.
-        try:
-            attrs["window_end"] = parse_iso_datetime(first.get("next_three_hourly_forecast_period"))
-        except ValueError:
-            attrs["window_end"] = None
-        return attrs
-
-    @property
-    def native_value(self) -> Any:
-        """Return the start of the first block expected to be wet enough."""
-        block = self._first_wet_block()
-        if block is None:
-            # Nothing wet enough anywhere in the forecast. Unknown rather than a
-            # sentinel time, so history and templates read it as "no answer".
-            return None
-        try:
-            return parse_iso_datetime(block[0].get("time"))
-        except ValueError:
-            return None
+    def _chunk_attributes(self, chunk: RainChunk) -> dict[str, Any]:
+        """Return the attributes describing one block."""
+        return {
+            "chunk_start": self._local(chunk.start),
+            "chunk_end": self._local(chunk.end),
+            "chance": chunk.chance,
+            "at_least": chunk.at_least,
+            "up_to": chunk.up_to,
+            "condition": chunk.condition,
+        }
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return f"BOM {self.location_name} {self.sensor_name.replace('_', ' ').title()}"
+
+
+class HoursUntilRainSensor(RainSensorBase):
+    """Hours until the next rain event.
+
+    Counts to the start of the first wet block: the earliest the rain could
+    arrive, not the minute it will. Reads 0 while the block under way is wet.
+    """
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the hours until the first wet block starts."""
+        now, _, event = self._outlook()
+        if not event:
+            # No rain in the forecast, or no forecast. Unknown rather than a
+            # made-up number; the status attribute says which.
+            return None
+        return round(max((event[0].start - now).total_seconds(), 0) / 3600, 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the sensor."""
+        now, chunks, event = self._outlook()
+        attrs: dict[str, Any] = {
+            "status": self._status(chunks, event),
+            "threshold_percent": RAIN_EXPECTED_THRESHOLD_PERCENT,
+            # The block under way, whether or not it reaches the threshold.
+            "chance_now": chunks[0].chance if chunks and chunks[0].start <= now else None,
+        }
+        if event:
+            attrs.update(self._chunk_attributes(event[0]))
+        return attrs
+
+
+class NextRainAmountSensor(RainSensorBase):
+    """How much rain the current or next wet block could bring, in mm.
+
+    The state is BOM's upper figure, the amount with a 25% chance of being
+    exceeded: "up to". Its lower figure is 0 for most showers, which would read
+    as no rain at all. The state follows the event block by block, so a light
+    start and a heavier middle each show as they arrive; the attributes cover
+    the whole event, for notice of what is still to come.
+    """
+
+    # The block-by-block breakdown is for dashboards and templates. Recording it
+    # would store the whole list again with every state change.
+    _unrecorded_attributes = frozenset({"chunks"})
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the upper rain amount of the current or next wet block."""
+        _, chunks, event = self._outlook()
+        if event:
+            return event[0].up_to
+        # No rain in the forecast is a true zero; no forecast is unknown.
+        return 0 if self._status(chunks, event) == "none_expected" else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the sensor."""
+        _, chunks, event = self._outlook()
+        attrs: dict[str, Any] = {
+            "status": self._status(chunks, event),
+            "threshold_percent": RAIN_EXPECTED_THRESHOLD_PERCENT,
+        }
+        if not event:
+            return attrs
+
+        attrs.update(self._chunk_attributes(event[0]))
+        # Sums of each block's upper figure: a "could reach" total for the
+        # event, not a strict 25% figure for the sum.
+        amounts = [chunk for chunk in event if chunk.up_to is not None]
+        heaviest = max(amounts, key=lambda chunk: chunk.up_to, default=None)
+        attrs.update(
+            event_start=self._local(event[0].start),
+            event_end=self._local(event[-1].end),
+            event_total=round(sum(chunk.up_to for chunk in amounts), 1) if amounts else None,
+            heaviest=heaviest.up_to if heaviest else None,
+            heaviest_start=self._local(heaviest.start) if heaviest else None,
+            heaviest_end=self._local(heaviest.end) if heaviest else None,
+            chunks=[
+                {
+                    "start": self._local(chunk.start),
+                    "end": self._local(chunk.end),
+                    "chance": chunk.chance,
+                    "at_least": chunk.at_least,
+                    "up_to": chunk.up_to,
+                    "condition": chunk.condition,
+                }
+                for chunk in event
+            ],
+        )
+        return attrs
 
 
 class LastUpdatedSensor(SensorBase):

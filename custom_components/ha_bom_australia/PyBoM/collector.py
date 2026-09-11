@@ -12,7 +12,7 @@ from typing import Any
 from .const import (
     MAP_MDI_ICON, URL_BASE, URL_DAILY, apply_day_night,
     URL_HOURLY, URL_OBSERVATIONS, URL_WARNINGS,
-    USER_AGENT, rain_chance_category,
+    USER_AGENT
 )
 from .helpers import (
     flatten_dict, geohash_encode,
@@ -164,11 +164,6 @@ class Collector:
                 d["icon_descriptor"] = apply_day_night(d.get("icon_descriptor"), is_night)
 
             d["mdi_icon"] = MAP_MDI_ICON.get(d.get("icon_descriptor"))
-
-            # Worded chance of rain. Derived from the number rather than taken
-            # from BOM's rain_chance_of_no_rain_category, which describes the
-            # opposite and would read "Very Low" on a day of showers.
-            d["rain_chance_category"] = rain_chance_category(d.get("rain_chance"))
 
             # If rain amount max is None, set as rain amount min
             if d["rain_amount_max"] is None:

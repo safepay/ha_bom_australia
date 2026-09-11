@@ -1,8 +1,112 @@
 """Helpers functions for PyBom."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+# BOM's rain forecast resolves to 3-hour blocks, aligned to UTC.
+RAIN_CHUNK_HOURS = 3
+
+
+@dataclass(frozen=True)
+class RainChunk:
+    """One 3-hourly block of BOM's rain forecast.
+
+    ``at_least`` and ``up_to`` are BOM's rain amount range in mm: the amounts
+    with a 50% and a 25% chance of being exceeded.
+    """
+
+    start: datetime
+    end: datetime
+    chance: int | float | None
+    at_least: int | float | None
+    up_to: int | float | None
+    condition: str | None
+
+
+def _number(value: Any) -> int | float | None:
+    """Return the value if it is a number, otherwise None."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def _chunk_end(hour: dict[str, Any]) -> datetime | None:
+    """Return when the 3-hourly block an hourly entry belongs to ends.
+
+    ``next_three_hourly_forecast_period`` carries it. Older responses put a word
+    such as "tonight" there instead, so when it is not a timestamp the block is
+    worked out from the entry's own time, blocks being aligned to UTC.
+    """
+    try:
+        return parse_iso_datetime(hour.get("next_three_hourly_forecast_period"))
+    except ValueError:
+        pass
+    try:
+        time = parse_iso_datetime(hour.get("time")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+    start = time.replace(
+        hour=time.hour - time.hour % RAIN_CHUNK_HOURS, minute=0, second=0, microsecond=0
+    )
+    return start + timedelta(hours=RAIN_CHUNK_HOURS)
+
+
+def rain_chunks(hours: Any, now: datetime) -> list[RainChunk]:
+    """Group the hourly forecast into the 3-hourly blocks its rain belongs to.
+
+    BOM repeats one rain chance and amount across the three hours of a block, so
+    the block is the finest resolution its rain forecast has. A block's start is
+    taken as three hours before its end rather than from the first entry present,
+    because BOM drops hours as they pass and the current block's first hour is
+    usually gone. Blocks that have already ended are dropped: the collector keeps
+    serving its last good response while BOM is unreachable, and that ages.
+    """
+    chunks: list[RainChunk] = []
+    if not isinstance(hours, list):
+        return chunks
+    for hour in hours:
+        if not isinstance(hour, dict):
+            continue
+        end = _chunk_end(hour)
+        if end is None or end <= now:
+            continue
+        if chunks and chunks[-1].end == end:
+            # Another hour of a block already read; it repeats the same figures.
+            continue
+        at_least = _number(hour.get("rain_amount_min"))
+        up_to = _number(hour.get("rain_amount_max"))
+        chunks.append(
+            RainChunk(
+                start=end - timedelta(hours=RAIN_CHUNK_HOURS),
+                end=end,
+                chance=_number(hour.get("rain_chance")),
+                at_least=at_least,
+                # BOM leaves the upper figure null when the range is one value.
+                up_to=up_to if up_to is not None else at_least,
+                condition=hour.get("icon_descriptor"),
+            )
+        )
+    return chunks
+
+
+def rain_event(chunks: list[RainChunk], threshold: int | float) -> list[RainChunk]:
+    """Return the next run of consecutive blocks at or above ``threshold``.
+
+    The run starts at the first wet block, which may be the one under way, and
+    stops at the first block below the threshold or at a gap in the forecast.
+    Empty when no block reaches the threshold.
+    """
+    event: list[RainChunk] = []
+    for chunk in chunks:
+        wet = chunk.chance is not None and chunk.chance >= threshold
+        if event and (not wet or chunk.start != event[-1].end):
+            break
+        if wet:
+            event.append(chunk)
+    return event
+
 
 def parse_iso_datetime(value: Any) -> datetime:
     """Parse an ISO 8601 timestamp, defaulting to UTC when no offset is given.

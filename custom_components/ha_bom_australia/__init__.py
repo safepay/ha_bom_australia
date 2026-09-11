@@ -30,7 +30,9 @@ from .const import (
     COORDINATOR,
     DAY_INDEPENDENT_FORECAST_SENSORS,
     DOMAIN,
+    FORECAST_SENSOR_TYPES,
     LAST_UPDATED_SENSOR,
+    OBSERVATION_SENSOR_TYPES,
     UPDATE_LISTENER,
     WARNING_TYPES,
     WARNINGS_SENSOR,
@@ -130,9 +132,15 @@ def _configured_unique_ids(entry: ConfigEntry) -> set[tuple[str, str]]:
         ("sensor", entity_unique_id(entity_prefix, WARNINGS_SENSOR)),
     }
 
+    # A stored selection can still name a sensor type that has since been
+    # removed. sensor.py creates nothing for it, so neither is its entity kept.
+    observation_keys = {description.key for description in OBSERVATION_SENSOR_TYPES}
+    forecast_keys = {description.key for description in FORECAST_SENSOR_TYPES}
+
     if setting(CONF_OBSERVATIONS_CREATE) is True:
         for observation in setting(CONF_OBSERVATIONS_MONITORED) or []:
-            keep.add(("sensor", entity_unique_id(entity_prefix, observation)))
+            if observation in observation_keys:
+                keep.add(("sensor", entity_unique_id(entity_prefix, observation)))
 
     if setting(CONF_FORECASTS_CREATE) is True:
         forecast_days = setting(CONF_FORECASTS_DAYS, [])
@@ -143,6 +151,8 @@ def _configured_unique_ids(entry: ConfigEntry) -> set[tuple[str, str]]:
             forecast_days = []
 
         for forecast in setting(CONF_FORECASTS_MONITORED) or []:
+            if forecast not in forecast_keys:
+                continue
             if forecast in DAY_INDEPENDENT_FORECAST_SENSORS:
                 # Created once, and only when day 0 is among the days.
                 if 0 in forecast_days:

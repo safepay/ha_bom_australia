@@ -44,28 +44,6 @@ MAP_MDI_ICON = {
     "windy": "mdi:weather-windy",
     None: None,
 }
-def rain_chance_category(chance: int | float | None) -> str | None:
-    """Describe a chance of rain in words.
-
-    BOM publishes ``rain.chance_of_no_rain_category`` beside ``rain.chance``, but
-    it categorises the chance of *no* rain, so it runs opposite to the number it
-    sits next to: a sunny 0% day is "very high" and a 90% showers day is "very
-    low". Rather than invert that string, the same wording is derived here from
-    the chance of rain itself, which is unambiguous and cannot change meaning
-    under us. Boundaries match the buckets BOM's own field uses, observed over
-    27 distinct chance values: 0-10, 20-30, 40-60, 70-80, 90+.
-    """
-    if chance is None:
-        return None
-    if chance <= 10:
-        return "Very Low"
-    if chance <= 30:
-        return "Low"
-    if chance <= 60:
-        return "Medium"
-    if chance <= 80:
-        return "High"
-    return "Very High"
 
 
 MAP_UV = {

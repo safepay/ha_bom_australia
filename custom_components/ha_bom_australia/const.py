@@ -14,6 +14,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfLength,
     UnitOfSpeed,
+    UnitOfTime,
 )
 
 ATTRIBUTION: Final = "Data provided by the Australian Bureau of Meteorology"
@@ -34,10 +35,11 @@ CONF_WARNINGS_MONITORED: Final = "warnings_monitored"
 
 DEFAULT_FORECAST_DAYS: Final = [0, 1, 2, 3, 4]  # Default to 5 days (0-4)
 
-# Chance of rain, in percent, at or above which rain counts as "expected".
-# BOM's floor for a dry block is 5%, so anything lower would leave the sensor
-# reading "rain soon" almost permanently. A constant rather than an option for
-# now; promote it if it earns the config UI.
+# Chance of rain, in percent, at or above which a 3-hourly forecast block counts
+# as wet for the Hours Until Rain and Next Rain Amount sensors. Dry blocks read
+# 0-10%, so anything lower would leave them reading "rain soon" almost
+# permanently. A constant rather than an option for now; promote it if it earns
+# the config UI.
 RAIN_EXPECTED_THRESHOLD_PERCENT: Final = 20
 
 COORDINATOR: Final = "coordinator"
@@ -106,6 +108,10 @@ ATTR_API_GUST_SPEED_KILOMETRE: Final = "gust_speed_kilometre"
 ATTR_API_GUST_SPEED_KNOT: Final = "gust_speed_knot"
 ATTR_API_DELTA_T: Final = "delta_t"
 ATTR_API_CONDITION: Final = "condition"
+# Chosen among the observations, but derived from the hourly forecast's
+# 3-hourly rain blocks (see PyBoM.helpers.rain_chunks).
+ATTR_API_HOURS_UNTIL_RAIN: Final = "hours_until_rain"
+ATTR_API_NEXT_RAIN_AMOUNT: Final = "next_rain_amount"
 
 ATTR_API_TEMP_MAX: Final = "temp_max"
 ATTR_API_TEMP_MIN: Final = "temp_min"
@@ -122,11 +128,6 @@ ATTR_API_RAIN_AMOUNT_MIN: Final = "rain_amount_min"
 ATTR_API_RAIN_AMOUNT_MAX: Final = "rain_amount_max"
 ATTR_API_RAIN_AMOUNT_RANGE: Final = "rain_amount_range"
 ATTR_API_RAIN_CHANCE: Final = "rain_chance"
-# Worded chance of rain, derived in the collector from rain_chance. Not BOM's
-# rain_chance_of_no_rain_category, which describes the opposite (see
-# PyBoM.const.rain_chance_category).
-ATTR_API_RAIN_CHANCE_CATEGORY: Final = "rain_chance_category"
-ATTR_API_RAIN_EXPECTED_FROM: Final = "rain_expected_from"
 ATTR_API_FIRE_DANGER: Final = "fire_danger"
 ATTR_API_NOW_LABEL: Final = "now_label"
 ATTR_API_TEMP_NOW: Final = "temp_now"
@@ -145,7 +146,6 @@ DAY_INDEPENDENT_FORECAST_SENSORS: Final = (
     ATTR_API_TEMP_NOW,
     ATTR_API_LATER_LABEL,
     ATTR_API_TEMP_LATER,
-    ATTR_API_RAIN_EXPECTED_FROM,
 )
 
 # Sensors every entry gets, whatever was selected in the options.
@@ -237,6 +237,21 @@ OBSERVATION_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         device_class=SensorDeviceClass.PRECIPITATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_HOURS_UNTIL_RAIN,
+        name="Hours Until Rain",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        suggested_display_precision=1,
+        icon="mdi:weather-cloudy-clock",
+    ),
+    SensorEntityDescription(
+        key=ATTR_API_NEXT_RAIN_AMOUNT,
+        name="Next Rain Amount",
+        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+        device_class=SensorDeviceClass.PRECIPITATION,
+        icon="mdi:weather-pouring",
     ),
     SensorEntityDescription(
         key=ATTR_API_TEMP,
@@ -354,17 +369,6 @@ FORECAST_SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         name="Rain Probability",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:water-percent",
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_RAIN_CHANCE_CATEGORY,
-        name="Rain Likelihood",
-        icon="mdi:weather-cloudy-clock",
-    ),
-    SensorEntityDescription(
-        key=ATTR_API_RAIN_EXPECTED_FROM,
-        name="Rain Expected From",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        icon="mdi:weather-rainy",
     ),
     SensorEntityDescription(
         key=ATTR_API_FIRE_DANGER,
