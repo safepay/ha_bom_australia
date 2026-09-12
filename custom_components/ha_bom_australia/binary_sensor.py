@@ -101,10 +101,9 @@ class BomWarningSensor(BinarySensorEntity):
             name=f"BOM {self.location_name} Warnings",
         )
 
-        # See SensorBase: the entity id is set here so a new entity does not
-        # have the device name prefixed to a name that already carries the
-        # location. An entity already in the registry keeps its own id.
-        self.entity_id = f"binary_sensor.{slugify(self.name)}"
+        # See SensorBase: the id keeps the bom_ prefix the friendly name no
+        # longer shows.
+        self.entity_id = f"binary_sensor.{slugify(f'BOM {self.name}')}"
 
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
@@ -124,7 +123,7 @@ class BomWarningSensor(BinarySensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return f"BOM {self.location_name} {self.warning_info['name']}"
+        return f"{self.location_name} {self.warning_info['name']}"
 
     @property
     def unique_id(self) -> str:
