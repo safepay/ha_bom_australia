@@ -22,6 +22,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify
 from zoneinfo import ZoneInfo
 
 from . import BomDataUpdateCoordinator
@@ -227,9 +228,19 @@ class SensorBase(CoordinatorEntity[BomDataUpdateCoordinator], SensorEntity):
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, f"{self.entity_prefix}_{device_suffix}")},
             manufacturer=SHORT_ATTRIBUTION,
-            model=MODEL_NAME,
+            model=f"{MODEL_NAME} - {device_type}",
             name=f"BOM {self.location_name} {device_type}",
         )
+
+        # Home Assistant builds a new entity's id from its device name followed
+        # by the entity's own name, and only drops the device name when the
+        # entity name starts with it. Every name here already carries the
+        # location, so a new entity would be registered as
+        # sensor.bom_<name>_sensors_bom_<name>_temp. Setting the id here asks
+        # for the one entities were registered with before that, which is the
+        # pattern the weather cards rely on. It applies only when an entity is
+        # first created: anything already in the registry keeps its own id.
+        self.entity_id = f"sensor.{slugify(self.name)}"
 
     def _timezone(self) -> ZoneInfo | None:
         """Return the BOM location's timezone, or None when it is unavailable."""

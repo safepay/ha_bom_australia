@@ -19,7 +19,10 @@ from homeassistant.const import (
 
 ATTRIBUTION: Final = "Data provided by the Australian Bureau of Meteorology"
 SHORT_ATTRIBUTION: Final = "Australian Bureau of Meteorology"
-MODEL_NAME: Final = "Weather Sensor"
+# Base model, shown under each device's name. An entry has four devices, so each
+# one appends what it holds ("Weather API - Forecast Sensors" and so on) rather
+# than all four reading the same line.
+MODEL_NAME: Final = "Weather API"
 COLLECTOR: Final = "collector"
 UPDATE_LISTENER: Final = "update_listener"
 

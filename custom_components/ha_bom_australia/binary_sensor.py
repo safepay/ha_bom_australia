@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import slugify
 
 from . import BomDataUpdateCoordinator
 from .const import (
@@ -96,9 +97,14 @@ class BomWarningSensor(BinarySensorEntity):
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, f"{self.entity_prefix}_warnings")},
             manufacturer=SHORT_ATTRIBUTION,
-            model=MODEL_NAME,
+            model=f"{MODEL_NAME} - Warnings",
             name=f"BOM {self.location_name} Warnings",
         )
+
+        # See SensorBase: the entity id is set here so a new entity does not
+        # have the device name prefixed to a name that already carries the
+        # location. An entity already in the registry keeps its own id.
+        self.entity_id = f"binary_sensor.{slugify(self.name)}"
 
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""

@@ -15,6 +15,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_sunrise, async_track_sunset
 from homeassistant.helpers.sun import is_up
+from homeassistant.util import slugify
 from zoneinfo import ZoneInfo
 
 from . import BomDataUpdateCoordinator
@@ -83,6 +84,11 @@ class WeatherBase(WeatherEntity):
             model=MODEL_NAME,
             name=f"BOM {self.location_name}",
         )
+
+        # See SensorBase: the entity id is set here so a new entity does not
+        # have the device name prefixed to a name that already carries the
+        # location. An entity already in the registry keeps its own id.
+        self.entity_id = f"weather.{slugify(self.name)}"
 
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
