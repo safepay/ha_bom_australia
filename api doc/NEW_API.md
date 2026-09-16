@@ -1015,8 +1015,15 @@ Behavioural differences worth planning for:
 
 ## 11. What the mobile app uses
 
-From the Retrofit path annotations in `au.gov.bom.metview` 6.14.0. Retrofit
-requires string literals, so this is the app's complete HTTP surface:
+`au.gov.bom.metview` 6.14.0 is a React Native app: the BOM logic lives in Hermes
+bytecode at `assets/index.android.bundle`, not in the native shell. An earlier
+version of this section read that shell as "Retrofit path annotations" and so
+undercounted the endpoint surface and mislabelled the notification transport;
+both are corrected below.
+
+The app talks only to `https://api.weather.bom.gov.au/v1` — the old geohash API.
+It does not call `api.bom.gov.au`. Endpoint surface confirmed live (`200` unless
+noted):
 
 ```
 locations/{geohash}
@@ -1024,28 +1031,25 @@ locations/{geohash}/forecasts/daily
 locations/{geohash}/forecasts/hourly
 locations/{geohash}/observations
 locations/{geohash}/warnings
+locations/{geohash}/storm-whisperer/subscription-types   -> ["rain"]
+locations/{geohash}/storm-whisperer/subscriptions/{deviceId}
+locations/{geohash}/warnings/subscription-types          -> 8 warning types
+app-version-support        { latest_version, active_from_version, deprecated{…} }
+app-toasts                 { data: [] }
+health-status              401 (needs auth we don't hold)
 ```
 
-All five are on `https://api.weather.bom.gov.au/v1` — the old geohash API. The
-app does not call `api.bom.gov.au` at all.
+`warnings/subscription-types` returns `coastal_hazard_warning`,
+`fire_weather_warning`, `flood`, `heatwave_warning`, `marine_wind_warning`,
+`severe_thunderstorm_warning`, `severe_weather_warning`, `tsunami_warning`.
 
-One further endpoint on that host is undocumented but live:
-`GET /v1/app-version-support` returns `200` with
-`data.{latest_version, active_from_version, deprecated{from_version, end_date, heading, text}}`.
+**There is no rain-nowcast endpoint to poll.** The "rain approaching"
+notification ("up to 30 minutes' notice") is composed server-side and delivered
+by push. The two `subscriptions/` endpoints above register a device to receive
+it; they do not return forecast data. The app's radar imagery is likewise
+Mapbox-hosted on BOM's own account with tile URLs handed to the client at
+runtime, so it is not a public data source either.
 
-**There is no rain-nowcast endpoint on either API.** The app's "rain approaching"
-notification (offering "up to 30 minutes notice") is not fetched:
-
-- it is gated by a Firebase Remote Config flag, `RAIN_NOTIFICATION`;
-- it is delivered by Firebase Cloud Messaging (`subscribeToTopic`), so the text
-  is composed server-side;
-- subscriptions are per saved location × alert type, in two families —
-  `warnings/...` and `storm-whisperer/...` (the latter covering rain, hail,
-  frost, fire weather, storm tide, haze and bushwalker alerts). Neither family's
-  path resolves on `api.weather.bom.gov.au`; the host is supplied at runtime.
-- the radar imagery is Mapbox-hosted on BOM's own account (style
-  `mapbox://styles/bom-dc-prod/…`, tilesets `BOM-RainRateStaticReference-Nowcast`
-  and `-Observation`), with tile URLs handed to the client at runtime.
-
-Nothing here is pollable by a third party: the rain nowcast is pushed, and its
-tiles are billed to BOM's Mapbox account.
+Redistribution caveat: every response carries "…owned by the Bureau of
+Meteorology. You must not use, copy or share it." Technical feasibility and
+permission to redistribute are separate questions.
