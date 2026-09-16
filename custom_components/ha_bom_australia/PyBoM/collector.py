@@ -7,6 +7,7 @@ import copy
 import logging
 import math
 import time
+from datetime import datetime
 from typing import Any
 
 from .const import (
@@ -26,6 +27,21 @@ RETRY_DELAY_BASE = 2  # seconds
 MAX_CACHE_AGE = 86400  # 24 hours in seconds
 
 HEADERS = {"User-Agent": USER_AGENT}
+
+
+def _issue_time(data: dict[str, Any] | None) -> datetime | None:
+    """Return a response's metadata issue_time, or None if it has none."""
+    if not isinstance(data, dict):
+        return None
+    raw = data.get("metadata", {}).get("issue_time")
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (AttributeError, ValueError):
+        _LOGGER.debug(f"Unparsable issue_time {raw!r}")
+        return None
+
 
 class Collector:
     """Collector for PyBoM."""
@@ -70,6 +86,7 @@ class Collector:
             # - Daily forecasts/warnings: accepts 6 or 7-character geohash
             # We use 6-char as the common denominator when calculating
             self.geohash = geohash_encode(latitude, longitude, precision=6)
+        self._last_issue_time: dict[str, datetime] = {}
         # Cache storage with timestamps
         self._cache = {
             "locations": {"data": None, "timestamp": 0},
@@ -86,6 +103,22 @@ class Collector:
                 async with self._session.get(url, headers=HEADERS) as response:
                     if response.status == 200:
                         data = await response.json()
+                        # The CDN can serve a cached variant older than one
+                        # we have already processed; equal issue_times are kept
+                        # because the daily "now" block moves between reissues.
+                        issued = _issue_time(data)
+                        previous = self._last_issue_time.get(cache_key)
+                        if issued is not None and previous is not None and issued < previous:
+                            cached = self._cache[cache_key]["data"]
+                            _LOGGER.debug(
+                                f"Discarding stale {cache_key} response issued {issued} "
+                                f"(already have {previous})"
+                            )
+                            if cached is not None:
+                                return copy.deepcopy(cached)
+                            return None
+                        if issued is not None:
+                            self._last_issue_time[cache_key] = issued
                         # Cache a pristine copy, not the object we hand back.
                         # Callers reshape the response in place (flatten_dict
                         # pops "rain", "uv" and friends), so sharing one object
